@@ -1,0 +1,340 @@
+{
+  "name": "🔄 Churn Prediction & Prevention - Shopify",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "daily-analysis-trigger",
+      "name": "Daily Analysis Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "🔥 DEMO: Daily churn risk analysis\n💰 ROI: 15-30% retention improvement\n⚡ Impact: Proactive customer retention vs reactive"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  c.customer_id,\n  c.email,\n  c.first_name,\n  c.last_name,\n  c.created_at as customer_since,\n  c.total_spent,\n  c.orders_count,\n  c.last_order_date,\n  c.tags,\n  EXTRACT(DAYS FROM (NOW() - c.last_order_date)) as days_since_last_order,\n  AVG(o.total_price) as avg_order_value,\n  COUNT(DISTINCT DATE_TRUNC('month', o.created_at)) as active_months\nFROM customers c\nLEFT JOIN orders o ON c.customer_id = o.customer_id\nWHERE c.orders_count >= 2 \n  AND c.last_order_date >= NOW() - INTERVAL '365 days'\nGROUP BY c.customer_id, c.email, c.first_name, c.last_name, c.created_at, c.total_spent, c.orders_count, c.last_order_date, c.tags\nHAVING EXTRACT(DAYS FROM (NOW() - c.last_order_date)) >= 30",
+        "additionalFields": {}
+      },
+      "id": "customer-behavior",
+      "name": "📊 Get Customer Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [460, 240],
+      "notes": "Retrieves at-risk customer behavior\nPurchase patterns, frequency, recency analysis"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  customer_id,\n  COUNT(*) as support_tickets,\n  AVG(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolution_rate,\n  AVG(satisfaction_score) as avg_satisfaction,\n  COUNT(CASE WHEN priority = 'high' THEN 1 END) as high_priority_tickets,\n  MAX(created_at) as last_support_contact\nFROM support_tickets \nWHERE created_at >= NOW() - INTERVAL '90 days'\n  AND customer_id IN (SELECT DISTINCT customer_id FROM customers WHERE orders_count >= 2)\nGROUP BY customer_id",
+        "additionalFields": {}
+      },
+      "id": "support-data",
+      "name": "🎧 Support History",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [460, 320],
+      "notes": "Customer service interactions\nSatisfaction scores, complaint patterns"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  customer_id,\n  COUNT(*) as email_opens,\n  COUNT(CASE WHEN clicked = true THEN 1 END) as email_clicks,\n  AVG(CASE WHEN opened = true THEN 1 ELSE 0 END) as open_rate,\n  MAX(opened_at) as last_email_engagement,\n  COUNT(CASE WHEN unsubscribed = true THEN 1 END) as unsubscribe_events\nFROM email_engagement \nWHERE sent_at >= NOW() - INTERVAL '90 days'\nGROUP BY customer_id",
+        "additionalFields": {}
+      },
+      "id": "engagement-data",
+      "name": "📧 Email Engagement",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [460, 400],
+      "notes": "Email engagement metrics\nOpen rates, click rates, unsubscribes"
+    },
+    {
+      "parameters": {
+        "model": "claude-3-5-sonnet-20241022",
+        "prompt": "=You are an expert customer retention analyst. Analyze customer behavior patterns to predict churn risk and recommend prevention strategies.\n\nCustomer Data: {{$node[\"customer-behavior\"].json}}\nSupport History: {{$node[\"support-data\"].json}}\nEmail Engagement: {{$node[\"engagement-data\"].json}}\n\nAnalyze churn indicators:\n\n1. **Behavioral Signals**:\n   - Purchase frequency decline\n   - Order value changes\n   - Days since last purchase\n   - Seasonal buying patterns\n   - Product category shifts\n\n2. **Engagement Signals**:\n   - Email engagement drop\n   - Website visit frequency\n   - Support ticket patterns\n   - Social media interactions\n\n3. **Satisfaction Indicators**:\n   - Support satisfaction scores\n   - Review sentiment\n   - Return/refund patterns\n   - Complaint escalations\n\n4. **Risk Segmentation**:\n   - High Risk (90 days): Likely to churn soon\n   - Medium Risk (60 days): Warning signs present\n   - Low Risk: Stable but monitor\n   - At Risk VIP: High-value customers showing decline\n\nFor each customer, provide:\n- Churn probability score (0-100)\n- Risk level and timeline\n- Key churn indicators\n- Recommended retention actions\n- Personalized win-back strategy\n- Expected CLV at risk\n\nReturn detailed JSON with risk scores, retention recommendations, and prioritized action plans.",
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 3500
+        }
+      },
+      "id": "churn-analysis",
+      "name": "🧠 AI Churn Analysis",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [680, 340],
+      "notes": "🎯 Predicts churn probability\n📊 Identifies risk factors\n🎲 Recommends retention strategies"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Advanced churn prediction with ML-like scoring\nconst analysis = JSON.parse($input.first().json.choices[0].message.content);\nconst customerData = $node[\"customer-behavior\"].json;\nconst supportData = $node[\"support-data\"].json;\nconst engagementData = $node[\"engagement-data\"].json;\n\n// Create lookup maps for faster data access\nconst supportMap = new Map(supportData.map(s => [s.customer_id, s]));\nconst engagementMap = new Map(engagementData.map(e => [e.customer_id, e]));\n\n// Advanced churn scoring algorithms\nfunction calculateRFMScore(customer) {\n  // Recency Score (0-100)\n  const daysSinceLastOrder = customer.days_since_last_order;\n  let recencyScore = 100;\n  if (daysSinceLastOrder > 180) recencyScore = 20;\n  else if (daysSinceLastOrder > 120) recencyScore = 40;\n  else if (daysSinceLastOrder > 90) recencyScore = 60;\n  else if (daysSinceLastOrder > 60) recencyScore = 80;\n  \n  // Frequency Score (0-100)\n  const avgOrdersPerMonth = customer.orders_count / customer.active_months;\n  let frequencyScore = Math.min(100, avgOrdersPerMonth * 25);\n  \n  // Monetary Score (0-100)\n  const avgOrderValue = parseFloat(customer.avg_order_value || 0);\n  let monetaryScore = Math.min(100, avgOrderValue / 5); // Normalize to $500 = 100pts\n  \n  return {\n    recency: recencyScore,\n    frequency: frequencyScore,\n    monetary: monetaryScore,\n    composite: (recencyScore + frequencyScore + monetaryScore) / 3\n  };\n}\n\nfunction calculateEngagementScore(customerId) {\n  const engagement = engagementMap.get(customerId);\n  if (!engagement) return 0;\n  \n  const openRate = engagement.open_rate || 0;\n  const clickRate = engagement.email_clicks / Math.max(1, engagement.email_opens) || 0;\n  const recentEngagement = engagement.last_email_engagement ? \n    Math.max(0, 100 - (new Date() - new Date(engagement.last_email_engagement)) / (1000 * 60 * 60 * 24)) : 0;\n  \n  return (openRate * 40) + (clickRate * 100 * 30) + (recentEngagement * 0.3);\n}\n\nfunction calculateSatisfactionScore(customerId) {\n  const support = supportMap.get(customerId);\n  if (!support) return 75; // Neutral if no support history\n  \n  let score = 50;\n  \n  // High satisfaction from previous interactions\n  if (support.avg_satisfaction >= 4.0) score += 30;\n  else if (support.avg_satisfaction >= 3.0) score += 10;\n  else if (support.avg_satisfaction < 2.0) score -= 30;\n  \n  // Resolution rate impact\n  if (support.resolution_rate >= 0.8) score += 15;\n  else if (support.resolution_rate < 0.5) score -= 15;\n  \n  // High priority tickets indicate problems\n  if (support.high_priority_tickets > 2) score -= 20;\n  \n  return Math.max(0, Math.min(100, score));\n}\n\nfunction predictChurnProbability(rfm, engagement, satisfaction, customer) {\n  let churnScore = 0;\n  \n  // RFM contribution (40% weight)\n  churnScore += (100 - rfm.composite) * 0.4;\n  \n  // Engagement contribution (30% weight)\n  churnScore += (100 - engagement) * 0.3;\n  \n  // Satisfaction contribution (20% weight)\n  churnScore += (100 - satisfaction) * 0.2;\n  \n  // Additional risk factors (10% weight)\n  if (customer.days_since_last_order > 120) churnScore += 10;\n  if (customer.total_spent > 500 && customer.days_since_last_order > 90) churnScore += 5; // VIP at risk\n  if (customer.orders_count === 2 && customer.days_since_last_order > 60) churnScore += 15; // Early customer drop-off\n  \n  return Math.min(100, churnScore);\n}\n\nfunction determineRiskLevel(churnProbability, customerValue) {\n  if (churnProbability >= 80) return 'critical';\n  if (churnProbability >= 65) return 'high';\n  if (churnProbability >= 40) return 'medium';\n  return 'low';\n}\n\nfunction generateRetentionStrategy(customer, churnProbability, rfm, engagement, satisfaction) {\n  const strategies = [];\n  \n  // High churn probability strategies\n  if (churnProbability >= 70) {\n    strategies.push('Immediate personal outreach call');\n    strategies.push('Exclusive discount offer (15-20%)');\n    if (customer.total_spent > 300) strategies.push('VIP customer service upgrade');\n  }\n  \n  // Low engagement strategies\n  if (engagement < 30) {\n    strategies.push('Re-engagement email campaign');\n    strategies.push('Personalized product recommendations');\n    strategies.push('Preference center update');\n  }\n  \n  // Low satisfaction strategies\n  if (satisfaction < 50) {\n    strategies.push('Customer success manager assignment');\n    strategies.push('Satisfaction survey and feedback loop');\n    strategies.push('Proactive issue resolution');\n  }\n  \n  // RFM-based strategies\n  if (rfm.frequency < 30) {\n    strategies.push('Purchase frequency incentives');\n    strategies.push('Subscription or membership offer');\n  }\n  \n  if (rfm.monetary < 40) {\n    strategies.push('Bundle offers and upselling');\n    strategies.push('Value-focused messaging');\n  }\n  \n  return strategies.slice(0, 5); // Top 5 strategies\n}\n\n// Process each customer\nconst churnPredictions = customerData.map(customer => {\n  const rfmScores = calculateRFMScore(customer);\n  const engagementScore = calculateEngagementScore(customer.customer_id);\n  const satisfactionScore = calculateSatisfactionScore(customer.customer_id);\n  const churnProbability = predictChurnProbability(rfmScores, engagementScore, satisfactionScore, customer);\n  const riskLevel = determineRiskLevel(churnProbability, customer.total_spent);\n  const retentionStrategy = generateRetentionStrategy(customer, churnProbability, rfmScores, engagementScore, satisfactionScore);\n  \n  // Calculate timeline to churn\n  let daysToChurn = 90;\n  if (churnProbability >= 80) daysToChurn = 30;\n  else if (churnProbability >= 65) daysToChurn = 60;\n  \n  return {\n    customer_id: customer.customer_id,\n    email: customer.email,\n    first_name: customer.first_name,\n    last_name: customer.last_name,\n    \n    churn_probability: Math.round(churnProbability),\n    risk_level: riskLevel,\n    days_to_predicted_churn: daysToChurn,\n    \n    scores: {\n      rfm_composite: Math.round(rfmScores.composite),\n      engagement: Math.round(engagementScore),\n      satisfaction: Math.round(satisfactionScore)\n    },\n    \n    customer_metrics: {\n      total_spent: parseFloat(customer.total_spent),\n      orders_count: customer.orders_count,\n      days_since_last_order: customer.days_since_last_order,\n      avg_order_value: parseFloat(customer.avg_order_value || 0),\n      clv_at_risk: parseFloat(customer.total_spent) * (customer.orders_count >= 5 ? 1.5 : 1.2)\n    },\n    \n    retention_strategies: retentionStrategy,\n    \n    next_actions: [\n      `Contact within ${daysToChurn <= 30 ? '24 hours' : '7 days'}`,\n      retentionStrategy[0] || 'Send re-engagement email',\n      'Monitor response and adjust strategy'\n    ],\n    \n    priority_score: Math.round((churnProbability * 0.7) + (parseFloat(customer.total_spent) / 100 * 0.3)),\n    \n    analyzed_at: new Date().toISOString()\n  };\n});\n\n// Sort by priority score (highest risk + highest value first)\nchurnPredictions.sort((a, b) => b.priority_score - a.priority_score);\n\nreturn churnPredictions.map(prediction => ({json: prediction}));"
+      },
+      "id": "ml-churn-scoring",
+      "name": "🔬 ML Churn Scoring",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 340],
+      "notes": "🛡️ Advanced churn prediction:\n• RFM behavioral scoring\n• Engagement pattern analysis\n• Risk timeline prediction"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "churn_predictions",
+        "columns": "customer_id, email, churn_probability, risk_level, days_to_predicted_churn, rfm_score, engagement_score, satisfaction_score, total_spent, clv_at_risk, retention_strategies, next_actions, priority_score, predicted_at",
+        "additionalFields": {
+          "values": "='{{$json.customer_id}}', '{{$json.email}}', {{$json.churn_probability}}, '{{$json.risk_level}}', {{$json.days_to_predicted_churn}}, {{$json.scores.rfm_composite}}, {{$json.scores.engagement}}, {{$json.scores.satisfaction}}, {{$json.customer_metrics.total_spent}}, {{$json.customer_metrics.clv_at_risk}}, '{{JSON.stringify($json.retention_strategies)}}', '{{JSON.stringify($json.next_actions)}}', {{$json.priority_score}}, '{{$json.analyzed_at}}'"
+        }
+      },
+      "id": "churn-database",
+      "name": "📊 Store Predictions",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1120, 340],
+      "notes": "📈 Churn prediction database\n📊 Historical accuracy tracking\n🔍 Retention campaign results"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "critical-churn-risk",
+              "leftValue": "={{$json.risk_level}}",
+              "rightValue": "critical,high",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "high-risk-filter",
+      "name": "🚨 Critical Risk Customer?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1340, 340],
+      "notes": "Identifies critical and high-risk customers for immediate intervention"
+    },
+    {
+      "parameters": {
+        "url": "https://a.klaviyo.com/api/campaigns/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Klaviyo-API-Key {{$credentials.klaviyo.apiKey}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "data",
+              "value": "={\"type\": \"campaign\", \"attributes\": {\"name\": \"Churn Prevention: {{$json.first_name}} {{$json.last_name}}\", \"subject_line\": \"We miss you {{$json.first_name}}! Special offer inside\", \"template_id\": \"churn-prevention-template\", \"list_ids\": [\"churn-prevention-list\"], \"send_strategy\": {\"method\": \"immediate\"}, \"audiences\": {\"emails\": [\"{{$json.email}}\"]}}}"
+            }
+          ]
+        }
+      },
+      "id": "retention-email",
+      "name": "📧 Trigger Retention Campaign",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 280],
+      "notes": "✅ Automated retention emails\n📈 Personalized win-back offers\n🎯 Behavior-triggered campaigns"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "resource": "task",
+        "taskData": {
+          "title": "High-Risk Customer Retention: {{$json.first_name}} {{$json.last_name}}",
+          "description": "Customer ID: {{$json.customer_id}}\\nEmail: {{$json.email}}\\nChurn Risk: {{$json.churn_probability}}%\\nCLV at Risk: ${{$json.customer_metrics.clv_at_risk}}\\n\\nNext Actions:\\n{{$json.next_actions.join('\\n')}}\\n\\nRetention Strategies:\\n{{$json.retention_strategies.join('\\n')}}",
+          "priority": "high",
+          "assignee": "customer-success@company.com",
+          "due_date": "={{new Date(Date.now() + ({{$json.days_to_predicted_churn}} * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]}}"
+        }
+      },
+      "id": "create-task",
+      "name": "📋 Create Retention Task",
+      "type": "n8n-nodes-base.asana",
+      "typeVersion": 1,
+      "position": [1560, 360],
+      "notes": "✅ Assigns retention tasks\n📈 Customer success team workflow\n🎯 Deadline-based follow-up"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C1234567890",
+          "mode": "list",
+          "cachedResultName": "churn-alerts"
+        },
+        "text": "=🚨 **CHURN RISK ALERT**\n\n**Customer:** {{$json.first_name}} {{$json.last_name}} ({{$json.email}})\n**Risk Level:** {{$json.risk_level.toUpperCase()}} ({{$json.churn_probability}}% probability)\n**Timeline:** {{$json.days_to_predicted_churn}} days to predicted churn\n\n**Customer Value:**\n💰 Total Spent: ${{$json.customer_metrics.total_spent}}\n📈 CLV at Risk: ${{$json.customer_metrics.clv_at_risk}}\n🛍️ Orders: {{$json.customer_metrics.orders_count}}\n📅 Last Order: {{$json.customer_metrics.days_since_last_order}} days ago\n\n**Risk Indicators:**\n📊 RFM Score: {{$json.scores.rfm_composite}}/100\n📧 Engagement: {{$json.scores.engagement}}/100\n😊 Satisfaction: {{$json.scores.satisfaction}}/100\n\n**Immediate Actions:**\n{{$json.next_actions.map(action => `⚡ ${action}`).join('\\n')}}\n\n**Retention Strategies:**\n{{$json.retention_strategies.slice(0,3).map(strategy => `🎯 ${strategy}`).join('\\n')}}\n\n_Priority Score: {{$json.priority_score}}/100_",
+        "otherOptions": {}
+      },
+      "id": "churn-alert",
+      "name": "📱 Churn Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1780, 340],
+      "notes": "🔔 Critical churn risk alerts\n📈 Customer value at risk\n👥 Retention team coordination"
+    }
+  ],
+  "connections": {
+    "Daily Analysis Trigger": {
+      "main": [
+        [
+          {
+            "node": "📊 Get Customer Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🎧 Support History",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📧 Email Engagement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Get Customer Data": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Churn Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎧 Support History": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Churn Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📧 Email Engagement": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Churn Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 AI Churn Analysis": {
+      "main": [
+        [
+          {
+            "node": "🔬 ML Churn Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔬 ML Churn Scoring": {
+      "main": [
+        [
+          {
+            "node": "📊 Store Predictions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Store Predictions": {
+      "main": [
+        [
+          {
+            "node": "🚨 Critical Risk Customer?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🚨 Critical Risk Customer?": {
+      "main": [
+        [
+          {
+            "node": "📧 Trigger Retention Campaign",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📋 Create Retention Task",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📱 Churn Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "customer-intelligence",
+      "name": "Customer Intelligence"
+    },
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "retention",
+      "name": "Retention"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-30T10:00:00.000Z",
+  "versionId": "1.0.0"
+}

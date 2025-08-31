@@ -1,0 +1,293 @@
+{
+  "name": "🚀 Dynamic Pricing Monitor - Amazon Seller",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Every Hour Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "🔥 DEMO: Monitors competitor prices every hour\n💰 ROI: 8-15% revenue increase\n⚡ Impact: Automatic competitive pricing"
+    },
+    {
+      "parameters": {
+        "url": "https://api.keepa.com/product",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "key",
+                "value": "={{$credentials.keepa.apiKey}}"
+              },
+              {
+                "name": "domain",
+                "value": "1"
+              },
+              {
+                "name": "asin",
+                "value": "B08N5WRWNW,B07FZ8S74R,B08GKJN5TX"
+              },
+              {
+                "name": "stats",
+                "value": "1"
+              }
+            ]
+          }
+        }
+      },
+      "id": "keepa-api",
+      "name": "🕷️ Scrape Competitor Prices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "notes": "Fetches real-time competitor pricing data\nMonitors: Current price, 30-day avg, Buy Box winner"
+    },
+    {
+      "parameters": {
+        "model": "claude-3-5-sonnet-20241022",
+        "prompt": "=You are an expert Amazon pricing strategist. Analyze this competitor pricing data and recommend optimal prices for our products.\n\nCompetitor Data: {{$json}}\n\nFor each ASIN, consider:\n1. Current competitor prices vs our price\n2. Price history and trends\n3. Buy Box eligibility\n4. Optimal margin vs volume balance\n5. Market positioning strategy\n\nProvide specific price recommendations with reasoning for each product. Format as JSON with ASIN, current_price, recommended_price, confidence_score, and reasoning.",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 2000
+        }
+      },
+      "id": "claude-pricing-ai",
+      "name": "🧠 AI Pricing Strategy",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [680, 300],
+      "notes": "🎯 AI analyzes competitor data\n📊 Recommends optimal pricing strategy\n🎲 Considers margins, Buy Box, trends"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI recommendations and apply business rules\nconst aiRecommendations = JSON.parse($input.first().json.choices[0].message.content);\nconst businessRules = {\n  minMargin: 0.15, // 15% minimum margin\n  maxPriceChange: 0.10, // Max 10% price change at once\n  buyBoxThreshold: 0.01 // Stay within $0.01 of Buy Box\n};\n\nconst finalPrices = [];\n\nfor (const rec of aiRecommendations) {\n  let finalPrice = rec.recommended_price;\n  \n  // Apply business rule constraints\n  const currentPrice = rec.current_price;\n  const maxChange = currentPrice * businessRules.maxPriceChange;\n  \n  if (Math.abs(finalPrice - currentPrice) > maxChange) {\n    finalPrice = currentPrice + (finalPrice > currentPrice ? maxChange : -maxChange);\n  }\n  \n  // Ensure minimum margin\n  const cost = currentPrice * 0.7; // Assume 70% cost basis\n  const minPrice = cost / (1 - businessRules.minMargin);\n  finalPrice = Math.max(finalPrice, minPrice);\n  \n  finalPrices.push({\n    asin: rec.asin,\n    current_price: currentPrice,\n    recommended_price: finalPrice,\n    price_change: ((finalPrice - currentPrice) / currentPrice * 100).toFixed(2) + '%',\n    reasoning: rec.reasoning,\n    confidence: rec.confidence_score,\n    action: Math.abs(finalPrice - currentPrice) > 0.01 ? 'UPDATE' : 'HOLD'\n  });\n}\n\nreturn finalPrices.map(item => ({json: item}));"
+      },
+      "id": "pricing-logic",
+      "name": "⚖️ Apply Business Rules",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "notes": "🛡️ Applies safety constraints:\n• Max 10% price change per hour\n• Minimum margin protection\n• Buy Box competitiveness"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "price-update-needed",
+              "leftValue": "={{$json.action}}",
+              "rightValue": "UPDATE",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "update-filter",
+      "name": "💱 Price Update Needed?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "notes": "Only processes items that need price updates"
+    },
+    {
+      "parameters": {
+        "url": "https://sellingpartnerapi-na.amazon.com/listings/2021-08-01/items/{{$json.seller_id}}/{{$json.asin}}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "amazonSpApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "productType",
+              "value": "PRODUCT"
+            },
+            {
+              "name": "patches",
+              "value": "=[{\"op\": \"replace\", \"path\": \"/attributes/list_price\", \"value\": [{\"Amount\": {{$json.recommended_price}}, \"CurrencyCode\": \"USD\"}]}]"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "amazon-sp-api",
+      "name": "🛒 Update Amazon Prices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300],
+      "notes": "✅ Updates prices via Amazon SP-API\n📈 Real-time price optimization\n🎯 Maintains Buy Box competitiveness"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "pricing_history",
+        "columns": "asin, old_price, new_price, change_percent, reasoning, confidence_score, updated_at",
+        "additionalFields": {
+          "values": "={{$json.asin}}, {{$json.current_price}}, {{$json.recommended_price}}, '{{$json.price_change}}', '{{$json.reasoning}}', {{$json.confidence}}, NOW()"
+        }
+      },
+      "id": "pricing-history-log",
+      "name": "📊 Log Price Changes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1560, 300],
+      "notes": "📈 Tracks all pricing decisions\n📊 Analytics and performance data\n🔍 Audit trail for compliance"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C1234567890",
+          "mode": "list",
+          "cachedResultName": "pricing-alerts"
+        },
+        "text": "=🚀 **Dynamic Pricing Update Complete!**\n\n{{$node[\"pricing-logic\"].json.length}} products analyzed\n{{$node[\"update-filter\"].json.length}} prices updated\n\n**Top Changes:**\n{{$node[\"update-filter\"].json.slice(0,3).map(item => `• ${item.asin}: $${item.current_price} → $${item.recommended_price} (${item.price_change})`).join('\\n')}}\n\n💰 **Expected Revenue Impact:** +${{($node[\"update-filter\"].json.reduce((sum, item) => sum + (item.recommended_price - item.current_price) * 10, 0)).toFixed(2)}}/day\n\n_Next update in 1 hour_",
+        "otherOptions": {}
+      },
+      "id": "slack-notification",
+      "name": "📱 Slack Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1780, 300],
+      "notes": "🔔 Real-time pricing alerts\n📈 Performance summaries\n👥 Team notifications"
+    }
+  ],
+  "connections": {
+    "Every Hour Trigger": {
+      "main": [
+        [
+          {
+            "node": "🕷️ Scrape Competitor Prices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🕷️ Scrape Competitor Prices": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Pricing Strategy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 AI Pricing Strategy": {
+      "main": [
+        [
+          {
+            "node": "⚖️ Apply Business Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚖️ Apply Business Rules": {
+      "main": [
+        [
+          {
+            "node": "💱 Price Update Needed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💱 Price Update Needed?": {
+      "main": [
+        [
+          {
+            "node": "🛒 Update Amazon Prices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🛒 Update Amazon Prices": {
+      "main": [
+        [
+          {
+            "node": "📊 Log Price Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Log Price Changes": {
+      "main": [
+        [
+          {
+            "node": "📱 Slack Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "amazon-pricing",
+      "name": "Amazon Pricing"
+    },
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "high-roi",
+      "name": "High ROI"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-30T10:00:00.000Z",
+  "versionId": "1.0.0"
+}

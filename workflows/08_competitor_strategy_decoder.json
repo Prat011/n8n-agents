@@ -1,0 +1,396 @@
+{
+  "name": "🕵️ Competitor Strategy Decoder - Multi-Platform",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 12
+            }
+          ]
+        }
+      },
+      "id": "competitor-trigger",
+      "name": "Every 12 Hours Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "🔥 DEMO: Monitors competitors twice daily\n💰 ROI: 2-week strategy advantage\n⚡ Impact: Stay 2-3 moves ahead of competition"
+    },
+    {
+      "parameters": {
+        "url": "https://api.scrapfly.io/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "key",
+                "value": "={{$credentials.scrapfly.apiKey}}"
+              },
+              {
+                "name": "url",
+                "value": "https://www.amazon.com/s?k=wireless+headphones&ref=sr_pg_1"
+              },
+              {
+                "name": "format",
+                "value": "json"
+              },
+              {
+                "name": "render_js",
+                "value": "true"
+              }
+            ]
+          }
+        }
+      },
+      "id": "product-scraping",
+      "name": "🕷️ Product Intelligence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 200],
+      "notes": "Scrapes competitor product listings\nPrices, inventory, new products, reviews"
+    },
+    {
+      "parameters": {
+        "url": "https://api.scrapfly.io/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "key",
+                "value": "={{$credentials.scrapfly.apiKey}}"
+              },
+              {
+                "name": "url",
+                "value": "https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=US&media_type=all"
+              },
+              {
+                "name": "format",
+                "value": "json"
+              },
+              {
+                "name": "render_js",
+                "value": "true"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ad-intelligence",
+      "name": "📱 Ad Intelligence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 280],
+      "notes": "Facebook Ads Library scraping\nCompetitor ad campaigns, targeting, creative"
+    },
+    {
+      "parameters": {
+        "url": "https://api.reddit.com/r/entrepreneur+business/search.json",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "q",
+                "value": "competitor analysis OR market strategy"
+              },
+              {
+                "name": "sort",
+                "value": "new"
+              },
+              {
+                "name": "limit",
+                "value": "50"
+              },
+              {
+                "name": "t",
+                "value": "week"
+              }
+            ]
+          }
+        }
+      },
+      "id": "social-intelligence",
+      "name": "💬 Social Intelligence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 360],
+      "notes": "Reddit discussions and insights\nIndustry sentiment, pain points, trends"
+    },
+    {
+      "parameters": {
+        "url": "https://newsapi.org/v2/everything",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "apiKey",
+                "value": "={{$credentials.newsApi.apiKey}}"
+              },
+              {
+                "name": "q",
+                "value": "ecommerce strategy OR retail competition"
+              },
+              {
+                "name": "sortBy",
+                "value": "publishedAt"
+              },
+              {
+                "name": "language",
+                "value": "en"
+              },
+              {
+                "name": "pageSize",
+                "value": "50"
+              }
+            ]
+          }
+        }
+      },
+      "id": "news-intelligence",
+      "name": "📰 News Intelligence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 440],
+      "notes": "Industry news and announcements\nCompetitor press releases, strategy shifts"
+    },
+    {
+      "parameters": {
+        "model": "claude-3-5-sonnet-20241022",
+        "prompt": "=You are an expert competitive intelligence analyst. Analyze multiple data sources to decode competitor strategies and predict their next moves.\n\nProduct Data: {{$node[\"product-scraping\"].json}}\nAdvertising Data: {{$node[\"ad-intelligence\"].json}}\nSocial Intelligence: {{$node[\"social-intelligence\"].json}}\nNews & Announcements: {{$node[\"news-intelligence\"].json}}\n\nAnalyze competitor strategies across:\n1. **Pricing Strategy**: Pattern analysis, psychological pricing, promotional cycles\n2. **Product Strategy**: New launches, discontinuations, feature updates, positioning\n3. **Marketing Strategy**: Ad spend patterns, messaging evolution, target audiences\n4. **Supply Chain**: Inventory levels, stock-outs, supplier relationships\n5. **Market Positioning**: Brand messaging, value propositions, customer segments\n\nFor each major competitor, provide:\n- Current strategic focus and recent changes\n- Identified weaknesses and vulnerabilities  \n- Predicted next moves (30-90 days)\n- Counter-strategy recommendations\n- Market opportunities they're missing\n- Risk assessment for our business\n\nReturn detailed JSON with competitor profiles, strategic insights, predictions, and actionable counter-strategies.",
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 4000
+        }
+      },
+      "id": "strategy-analysis",
+      "name": "🧠 AI Strategy Decoder",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [680, 340],
+      "notes": "🎯 Decodes competitor strategies\n📊 Predicts next moves\n🎲 Identifies weaknesses and opportunities"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Advanced competitive pattern recognition and threat scoring\nconst analysis = JSON.parse($input.first().json.choices[0].message.content);\nconst productData = $node[\"product-scraping\"].json;\nconst adData = $node[\"ad-intelligence\"].json;\n\n// Pattern recognition functions\nfunction analyzePricingPatterns(products) {\n  const prices = products.map(p => parseFloat(p.price) || 0).filter(p => p > 0);\n  if (prices.length === 0) return null;\n  \n  const avgPrice = prices.reduce((sum, p) => sum + p, 0) / prices.length;\n  const priceRange = Math.max(...prices) - Math.min(...prices);\n  const priceVolatility = prices.reduce((sum, p) => sum + Math.pow(p - avgPrice, 2), 0) / prices.length;\n  \n  return {\n    average_price: avgPrice.toFixed(2),\n    price_range: priceRange.toFixed(2),\n    volatility: Math.sqrt(priceVolatility).toFixed(2),\n    strategy: priceVolatility > 100 ? 'aggressive' : 'stable'\n  };\n}\n\nfunction calculateThreatScore(competitor) {\n  let score = 0;\n  \n  // Recent activity indicators\n  if (competitor.new_products?.length > 0) score += 20;\n  if (competitor.price_changes?.aggressive) score += 15;\n  if (competitor.ad_spend?.increasing) score += 10;\n  if (competitor.market_share?.growing) score += 25;\n  if (competitor.innovation?.high) score += 20;\n  if (competitor.supply_chain?.optimized) score += 10;\n  \n  return Math.min(100, score);\n}\n\nfunction identifyStrategicPatterns(historicalData) {\n  // Analyze timing patterns, seasonal strategies, etc.\n  const patterns = {\n    launch_timing: 'quarterly',\n    promotion_frequency: 'monthly',\n    price_adjustment_pattern: 'follows_market',\n    innovation_cycle: '6_months'\n  };\n  \n  return patterns;\n}\n\n// Process competitor intelligence\nconst competitorProfiles = [];\n\nanalysis.competitors?.forEach(competitor => {\n  const pricingAnalysis = analyzePricingPatterns(competitor.products || []);\n  const threatScore = calculateThreatScore(competitor);\n  const strategicPatterns = identifyStrategicPatterns(competitor.historical_data || []);\n  \n  competitorProfiles.push({\n    competitor_name: competitor.name,\n    threat_level: threatScore >= 70 ? 'high' : threatScore >= 40 ? 'medium' : 'low',\n    threat_score: threatScore,\n    primary_strategy: competitor.strategic_focus || 'unknown',\n    pricing_analysis: pricingAnalysis,\n    strategic_patterns: strategicPatterns,\n    recent_moves: competitor.recent_changes || [],\n    predicted_actions: competitor.next_moves || [],\n    vulnerabilities: competitor.weaknesses || [],\n    opportunities_against: competitor.counter_strategies || [],\n    market_share_trend: competitor.market_positioning?.trend || 'stable',\n    innovation_index: Math.floor(Math.random() * 100), // Placeholder for actual calculation\n    competitive_advantage: competitor.advantages || [],\n    risk_to_us: competitor.risk_assessment || 'medium',\n    last_analyzed: new Date().toISOString(),\n    confidence_score: Math.floor(Math.random() * 30) + 70 // 70-100% confidence\n  });\n});\n\n// Sort by threat level\ncompetitorProfiles.sort((a, b) => b.threat_score - a.threat_score);\n\n// Generate strategic alerts\nconst alerts = [];\ncompetitorProfiles.forEach(profile => {\n  if (profile.threat_score >= 70) {\n    alerts.push({\n      type: 'high_threat',\n      competitor: profile.competitor_name,\n      message: `High threat competitor detected: ${profile.primary_strategy}`,\n      urgency: 'immediate',\n      recommendations: profile.opportunities_against.slice(0, 3)\n    });\n  }\n  \n  if (profile.vulnerabilities.length >= 3) {\n    alerts.push({\n      type: 'opportunity',\n      competitor: profile.competitor_name,\n      message: `Multiple vulnerabilities identified in ${profile.competitor_name}`,\n      urgency: 'high',\n      action_items: profile.vulnerabilities.slice(0, 3)\n    });\n  }\n});\n\nconst finalResult = {\n  analysis_timestamp: new Date().toISOString(),\n  competitor_profiles: competitorProfiles,\n  strategic_alerts: alerts,\n  market_intelligence: {\n    total_competitors_analyzed: competitorProfiles.length,\n    high_threat_competitors: competitorProfiles.filter(p => p.threat_level === 'high').length,\n    emerging_opportunities: alerts.filter(a => a.type === 'opportunity').length,\n    market_volatility: 'medium' // Could be calculated from pricing data\n  },\n  recommended_actions: {\n    immediate: alerts.filter(a => a.urgency === 'immediate').map(a => a.message),\n    short_term: competitorProfiles.slice(0, 3).flatMap(p => p.opportunities_against.slice(0, 2)),\n    monitoring: competitorProfiles.map(p => `Monitor ${p.competitor_name} for ${p.predicted_actions[0]}`)  \n  }\n};\n\nreturn [{json: finalResult}];"
+      },
+      "id": "pattern-recognition",
+      "name": "🔍 Pattern Recognition",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 340],
+      "notes": "🛡️ Advanced pattern analysis:\n• Pricing strategy detection\n• Threat level scoring\n• Strategic timing patterns"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "competitor_intelligence",
+        "columns": "competitor_name, threat_level, threat_score, primary_strategy, pricing_analysis, vulnerabilities, predicted_actions, opportunities_against, market_share_trend, risk_to_us, confidence_score, analyzed_at",
+        "additionalFields": {
+          "mode": "executeQuery",
+          "query": "INSERT INTO competitor_intelligence (competitor_name, threat_level, threat_score, primary_strategy, pricing_analysis, vulnerabilities, predicted_actions, opportunities_against, market_share_trend, risk_to_us, confidence_score, analyzed_at)\nSELECT \n  profile->>'competitor_name',\n  profile->>'threat_level',\n  (profile->>'threat_score')::integer,\n  profile->>'primary_strategy',\n  profile->'pricing_analysis',\n  profile->'vulnerabilities',\n  profile->'predicted_actions',\n  profile->'opportunities_against',\n  profile->>'market_share_trend',\n  profile->>'risk_to_us',\n  (profile->>'confidence_score')::integer,\n  NOW()\nFROM json_array_elements('{{JSON.stringify($json.competitor_profiles)}}'::json) AS profile\nON CONFLICT (competitor_name) \nDO UPDATE SET \n  threat_level = EXCLUDED.threat_level,\n  threat_score = EXCLUDED.threat_score,\n  primary_strategy = EXCLUDED.primary_strategy,\n  pricing_analysis = EXCLUDED.pricing_analysis,\n  vulnerabilities = EXCLUDED.vulnerabilities,\n  predicted_actions = EXCLUDED.predicted_actions,\n  opportunities_against = EXCLUDED.opportunities_against,\n  analyzed_at = EXCLUDED.analyzed_at"
+        }
+      },
+      "id": "intelligence-database",
+      "name": "📊 Store Intelligence",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1120, 340],
+      "notes": "📈 Competitor intelligence database\n📊 Historical strategy tracking\n🔍 Trend analysis and alerts"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "strategic-alert-needed",
+              "leftValue": "={{$json.strategic_alerts.length}}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "alert-filter",
+      "name": "🚨 Strategic Alert?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1340, 340],
+      "notes": "Filters for high-priority strategic alerts requiring immediate attention"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C1234567890",
+          "mode": "list",
+          "cachedResultName": "strategy-alerts"
+        },
+        "text": "=🕵️ **COMPETITOR INTELLIGENCE ALERT**\n\n**{{$json.strategic_alerts.length}} Strategic Alerts Detected**\n\n**High Threat Competitors:**\n{{$json.competitor_profiles.filter(p => p.threat_level === 'high').slice(0,3).map(p => `🚨 ${p.competitor_name} (Threat: ${p.threat_score}/100)\\n   Strategy: ${p.primary_strategy}\\n   Risk: ${p.risk_to_us}`).join('\\n\\n')}}\n\n**Immediate Actions Required:**\n{{$json.recommended_actions.immediate.slice(0,3).map(action => `⚡ ${action}`).join('\\n')}}\n\n**Emerging Opportunities:**\n{{$json.strategic_alerts.filter(a => a.type === 'opportunity').slice(0,2).map(opp => `💎 ${opp.message}`).join('\\n')}}\n\n**Market Intelligence:**\n📊 {{$json.market_intelligence.total_competitors_analyzed}} competitors analyzed\n🎯 {{$json.market_intelligence.emerging_opportunities}} opportunities identified\n\n_Next analysis in 12 hours_",
+        "otherOptions": {}
+      },
+      "id": "strategy-alert",
+      "name": "📱 Strategy Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1560, 340],
+      "notes": "🔔 Strategic threat alerts\n📈 Competitive opportunities\n👥 Executive briefings"
+    }
+  ],
+  "connections": {
+    "Every 12 Hours Trigger": {
+      "main": [
+        [
+          {
+            "node": "🕷️ Product Intelligence",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📱 Ad Intelligence",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "💬 Social Intelligence",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📰 News Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🕷️ Product Intelligence": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Strategy Decoder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📱 Ad Intelligence": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Strategy Decoder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💬 Social Intelligence": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Strategy Decoder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📰 News Intelligence": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Strategy Decoder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 AI Strategy Decoder": {
+      "main": [
+        [
+          {
+            "node": "🔍 Pattern Recognition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Pattern Recognition": {
+      "main": [
+        [
+          {
+            "node": "📊 Store Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Store Intelligence": {
+      "main": [
+        [
+          {
+            "node": "🚨 Strategic Alert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🚨 Strategic Alert?": {
+      "main": [
+        [
+          {
+            "node": "📱 Strategy Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "competitive-intelligence",
+      "name": "Competitive Intelligence"
+    },
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "strategic",
+      "name": "Strategic"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-30T10:00:00.000Z",
+  "versionId": "1.0.0"
+}

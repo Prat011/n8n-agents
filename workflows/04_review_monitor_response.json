@@ -1,0 +1,304 @@
+{
+  "name": "⭐ AI Review Monitor & Response - Amazon",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "review-monitor-cron",
+      "name": "Every 15 Min Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "🔥 DEMO: Real-time review monitoring\n💰 ROI: Better ratings & reputation\n⚡ Impact: Instant response to reviews"
+    },
+    {
+      "parameters": {
+        "url": "https://api.rainforestapi.com/request",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "={{$credentials.rainforest.apiKey}}"
+            },
+            {
+              "name": "type",
+              "value": "reviews"
+            },
+            {
+              "name": "amazon_domain",
+              "value": "amazon.com"
+            },
+            {
+              "name": "asin",
+              "value": "B08N5WRWNW"
+            },
+            {
+              "name": "sort_by",
+              "value": "recent"
+            },
+            {
+              "name": "max_page",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "id": "scrape-reviews",
+      "name": "🕷️ Scrape Latest Reviews",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "notes": "Fetches latest customer reviews\nMonitors: Rating, sentiment, keywords\nTracks: New reviews every 15 minutes"
+    },
+    {
+      "parameters": {
+        "model": "claude-3-5-sonnet-20241022",
+        "prompt": "=You are an expert customer service AI specializing in Amazon review analysis and response strategy.\n\nReview Data: {{JSON.stringify($json, null, 2)}}\n\nFor each review, analyze:\n1. **Sentiment**: Positive/Neutral/Negative (1-5 scale)\n2. **Key Issues**: Specific problems mentioned\n3. **Response Urgency**: Immediate/Standard/Monitor\n4. **Customer Type**: First-time/Repeat/Potential influencer\n5. **Response Strategy**: Tone, key points, actions needed\n\nResponse Guidelines:\n- **5-Star Reviews**: Thank, ask for referrals, highlight specific features they loved\n- **4-Star Reviews**: Thank, address minor concerns, encourage future purchases\n- **3-Star Reviews**: Empathetic response, offer solutions, follow up privately\n- **1-2 Star Reviews**: Apologize, take ownership, offer immediate resolution\n\nReturn JSON with:\n- review_id\n- sentiment_score (1-5)\n- priority_level\n- key_issues[]\n- response_recommended (true/false)\n- suggested_response\n- follow_up_actions[]",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 2500
+        }
+      },
+      "id": "review-analysis-ai",
+      "name": "🧠 AI Review Analysis",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [680, 300],
+      "notes": "🎯 AI analyzes review sentiment\n📊 Categorizes issues and urgency\n💡 Generates response strategy"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "needs-response",
+              "leftValue": "={{$json.response_recommended}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            },
+            {
+              "id": "high-priority",
+              "leftValue": "={{$json.priority_level}}",
+              "rightValue": "Immediate",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "response-filter",
+      "name": "📝 Response Needed?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "notes": "Only processes reviews that need responses"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "positive",
+              "leftValue": "={{$json.sentiment_score}}",
+              "rightValue": 4,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "negative",
+              "leftValue": "={{$json.sentiment_score}}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "sentiment-router",
+      "name": "😊 Route by Sentiment",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1120, 300],
+      "notes": "🔀 Routes positive vs negative reviews\n⚡ Different response strategies\n🎯 Optimized for each sentiment"
+    },
+    {
+      "parameters": {
+        "to": "customer-success@company.com",
+        "subject": "🎉 New 5-Star Review - {{$json.product_name}}",
+        "emailType": "html",
+        "message": "=<h2>🌟 Amazing 5-Star Review!</h2>\n<p><strong>Product:</strong> {{$json.product_name}}</p>\n<p><strong>Customer:</strong> {{$json.customer_name}}</p>\n<p><strong>Rating:</strong> ⭐⭐⭐⭐⭐</p>\n<p><strong>Review:</strong> {{$json.review_text}}</p>\n<hr>\n<p><strong>AI Suggested Response:</strong></p>\n<div style='background:#f8f9fa;padding:15px;'>{{$json.suggested_response}}</div>\n<p><strong>Follow-up Actions:</strong></p>\n<ul>{{$json.follow_up_actions.map(action => '<li>' + action + '</li>').join('')}}</ul>"
+      },
+      "id": "positive-review-email",
+      "name": "📧 Positive Review Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1340, 200],
+      "notes": "📧 Celebrate positive reviews\n🎉 Team motivation\n💡 Response suggestions"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C1234567892",
+          "mode": "list",
+          "cachedResultName": "urgent-reviews"
+        },
+        "text": "=🚨 **URGENT: Negative Review Alert**\n\n**Product:** {{$json.product_name}}\n**Rating:** {{Array(6-$json.sentiment_score).fill('⭐').join('')}}\n**Customer:** {{$json.customer_name}}\n\n**Review:**\n> {{$json.review_text}}\n\n**Key Issues:**\n{{$json.key_issues.map(issue => '• ' + issue).join('\\n')}}\n\n**AI Suggested Response:**\n```\n{{$json.suggested_response}}\n```\n\n**Follow-up Actions:**\n{{$json.follow_up_actions.map(action => '• ' + action).join('\\n')}}\n\n⏰ **Response needed within 2 hours**",
+        "otherOptions": {}
+      },
+      "id": "negative-review-slack",
+      "name": "🚨 Negative Review Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1340, 400],
+      "notes": "🔔 Instant negative review alerts\n⚡ Urgent team notifications\n📝 Response templates included"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "review_analytics",
+        "columns": "review_id, asin, rating, sentiment_score, key_issues, response_sent, created_at",
+        "additionalFields": {
+          "values": "'{{$json.review_id}}', '{{$json.asin}}', {{$json.rating}}, {{$json.sentiment_score}}, '{{JSON.stringify($json.key_issues)}}', {{$json.response_recommended}}, NOW()"
+        }
+      },
+      "id": "review-analytics",
+      "name": "📊 Track Review Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1560, 300],
+      "notes": "📈 Review performance tracking\n💰 Response ROI measurement\n🔍 Sentiment trend analysis"
+    }
+  ],
+  "connections": {
+    "Every 15 Min Trigger": {
+      "main": [
+        [
+          {
+            "node": "🕷️ Scrape Latest Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🕷️ Scrape Latest Reviews": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Review Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 AI Review Analysis": {
+      "main": [
+        [
+          {
+            "node": "📝 Response Needed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Response Needed?": {
+      "main": [
+        [
+          {
+            "node": "😊 Route by Sentiment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "😊 Route by Sentiment": {
+      "main": [
+        [
+          {
+            "node": "📧 Positive Review Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📊 Track Review Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🚨 Negative Review Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📊 Track Review Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "review-management",
+      "name": "Review Management"
+    },
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "reputation-protection",
+      "name": "Reputation Protection"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-30T10:00:00.000Z",
+  "versionId": "1.0.0"
+}

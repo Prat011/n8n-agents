@@ -1,0 +1,301 @@
+{
+  "name": "💰 Abandoned Cart Recovery AI - Shopify",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cart-abandoned",
+        "options": {}
+      },
+      "id": "cart-webhook",
+      "name": "🛒 Cart Abandoned Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "cart-abandoned-webhook",
+      "notes": "🔥 DEMO: Instant cart abandonment detection\n💰 ROI: 15-25% cart recovery rate\n⚡ Impact: $50-500 recovered revenue per cart"
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "minutes"
+      },
+      "id": "initial-delay",
+      "name": "⏰ Wait 30 Minutes",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "notes": "⏰ Strategic delay prevents spam\n🧠 Gives customer time to return naturally\n📈 Optimized timing for max conversions"
+    },
+    {
+      "parameters": {
+        "model": "claude-3-5-sonnet-20241022",
+        "prompt": "=You are an expert ecommerce conversion specialist. Analyze this abandoned cart and create a personalized recovery strategy.\n\nCart Data: {{JSON.stringify($json, null, 2)}}\n\nAnalyze:\n1. **Cart Value**: High/medium/low value classification\n2. **Product Types**: Categories, price points, urgency factors\n3. **Customer Profile**: New vs returning, purchase history, behavior\n4. **Abandonment Context**: Time spent, pages visited, exit point\n5. **Recovery Psychology**: Best messaging approach and incentives\n\nCustomer Segments:\n- **High-Value Returner**: Previous purchases >$500, cart >$200\n- **Price-Conscious Shopper**: Multiple cart abandonments, price-sensitive\n- **Impulse Buyer**: Quick browse, left at checkout, needs urgency\n- **Research Buyer**: Long session, multiple visits, needs validation\n- **New Customer**: First visit, needs trust building\n\nReturn a JSON strategy with:\n- customer_segment\n- recovery_sequence (3 email strategy)\n- personalization_data\n- discount_recommendation\n- urgency_tactics\n- psychological_triggers",
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 2000
+        }
+      },
+      "id": "recovery-ai",
+      "name": "🧠 AI Recovery Strategy",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [680, 300],
+      "notes": "🎯 AI analyzes customer psychology\n💡 Personalized recovery tactics\n🎪 Emotional triggers and incentives"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI strategy and enrich with customer data\nconst cartData = $input.first().json;\nconst aiStrategy = JSON.parse($input.last().json.choices[0].message.content);\n\n// Mock customer enrichment (integrate with your CRM/analytics)\nconst customerProfile = {\n  email: cartData.email,\n  first_name: cartData.customer?.first_name || 'Valued Customer',\n  cart_value: cartData.total_price || cartData.line_items?.reduce((sum, item) => sum + (item.price * item.quantity), 0),\n  items_count: cartData.line_items?.length || 0,\n  previous_orders: Math.floor(Math.random() * 5), // Mock data\n  last_order_date: '2024-11-15', // Mock data\n  avg_order_value: 125.50, // Mock data\n  preferred_category: 'Electronics', // Mock data\n  timezone: 'America/New_York'\n};\n\n// Generate personalized discount based on AI recommendation\nconst generateDiscount = (recommendation, cartValue) => {\n  const discountMap = {\n    'high_percentage': Math.min(25, Math.max(10, cartValue * 0.15)),\n    'free_shipping': 0,\n    'dollar_amount': Math.min(50, Math.max(10, cartValue * 0.1)),\n    'buy_one_get_one': 0,\n    'no_discount': 0\n  };\n  return discountMap[recommendation] || 10;\n};\n\n// Create recovery sequence with timing\nconst recoverySequence = aiStrategy.recovery_sequence.map((email, index) => ({\n  sequence_number: index + 1,\n  delay_hours: [1, 24, 72][index], // 1 hour, 1 day, 3 days\n  subject: email.subject,\n  template: email.template,\n  personalization: {\n    ...customerProfile,\n    ...aiStrategy.personalization_data,\n    discount_code: `SAVE${generateDiscount(aiStrategy.discount_recommendation, customerProfile.cart_value)}`,\n    discount_amount: generateDiscount(aiStrategy.discount_recommendation, customerProfile.cart_value),\n    urgency_message: aiStrategy.urgency_tactics[index] || '',\n    social_proof: email.social_proof || '🌟 Join 50,000+ happy customers'\n  }\n}));\n\n// Compile final recovery strategy\nconst finalStrategy = {\n  ...aiStrategy,\n  customer_profile: customerProfile,\n  recovery_sequence: recoverySequence,\n  cart_items: cartData.line_items || [],\n  checkout_url: cartData.abandoned_checkout_url,\n  created_at: new Date().toISOString(),\n  expected_recovery_rate: {\n    'High-Value Returner': 0.35,\n    'Price-Conscious Shopper': 0.25,\n    'Impulse Buyer': 0.45,\n    'Research Buyer': 0.20,\n    'New Customer': 0.15\n  }[aiStrategy.customer_segment] || 0.20\n};\n\nreturn [{json: finalStrategy}];"
+      },
+      "id": "personalization-engine",
+      "name": "🎨 Personalization Engine",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "notes": "🎨 Creates personalized email sequence\n💝 Dynamic discount generation\n⏰ Optimal timing strategy"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "email-1",
+              "leftValue": "1",
+              "rightValue": "1",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "sequence-trigger",
+      "name": "📧 Start Email Sequence",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "notes": "📧 Initiates personalized email sequence\n⚡ First email sends immediately\n🔄 Sets up follow-up automations"
+    },
+    {
+      "parameters": {
+        "to": "={{$json.customer_profile.email}}",
+        "subject": "={{$json.recovery_sequence[0].subject.replace('{first_name}', $json.customer_profile.first_name)}}",
+        "emailType": "html",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n        .content { background: white; padding: 30px; border: 1px solid #ddd; }\n        .product-grid { display: flex; gap: 20px; margin: 20px 0; }\n        .product { flex: 1; border: 1px solid #eee; padding: 15px; border-radius: 8px; }\n        .cta-button { background: #ff6b35; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; margin: 20px 0; }\n        .discount { background: #f8f9fa; padding: 20px; border-left: 5px solid #ff6b35; margin: 20px 0; }\n        .urgency { color: #e74c3c; font-weight: bold; }\n        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>🛒 Don't Let These Slip Away, {{$json.customer_profile.first_name}}!</h1>\n            <p>{{$json.recovery_sequence[0].personalization.social_proof}}</p>\n        </div>\n        \n        <div class=\"content\">\n            <p>Hi {{$json.customer_profile.first_name}},</p>\n            \n            <p>I noticed you left some amazing items in your cart. As someone who's helped thousands of customers, I know how overwhelming online shopping can be sometimes.</p>\n            \n            <div class=\"product-grid\">\n                {{#each $json.cart_items}}\n                <div class=\"product\">\n                    <h4>{{this.title}}</h4>\n                    <p><strong>${{this.price}}</strong></p>\n                    <p>{{this.variant_title}}</p>\n                </div>\n                {{/each}}\n            </div>\n            \n            <div class=\"discount\">\n                <h3>🎁 Exclusive Offer Just for You!</h3>\n                <p>Since you're one of our valued customers, I'm giving you <strong>{{$json.recovery_sequence[0].personalization.discount_amount}}% OFF</strong> your entire cart!</p>\n                <p><strong>Code: {{$json.recovery_sequence[0].personalization.discount_code}}</strong></p>\n                <p class=\"urgency\">⏰ This offer expires in 24 hours!</p>\n            </div>\n            \n            <p>{{$json.recovery_sequence[0].personalization.urgency_message}}</p>\n            \n            <div style=\"text-align: center;\">\n                <a href=\"{{$json.checkout_url}}?discount={{$json.recovery_sequence[0].personalization.discount_code}}\" class=\"cta-button\">\n                    Complete Your Purchase - Save {{$json.recovery_sequence[0].personalization.discount_amount}}% 🚀\n                </a>\n            </div>\n            \n            <p>Questions? Just reply to this email - I read every message personally.</p>\n            \n            <p>Best regards,<br>\nSarah Chen<br>\nCustomer Success Team</p>\n        </div>\n        \n        <div class=\"footer\">\n            <p>This email was sent because you have items in your shopping cart.</p>\n            <p>{{$json.psychological_triggers[0]}}</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-1",
+      "name": "📧 Email 1: Recovery Offer",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1340, 200],
+      "notes": "📧 First recovery email\n🎁 Personalized discount offer\n⏰ Urgent but friendly tone"
+    },
+    {
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      },
+      "id": "wait-24h",
+      "name": "⏰ Wait 24 Hours",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "notes": "⏰ Strategic timing for follow-up\n📈 Allows processing of first email\n🧠 Optimal conversion window"
+    },
+    {
+      "parameters": {
+        "to": "={{$json.customer_profile.email}}",
+        "subject": "={{$json.recovery_sequence[1].subject.replace('{first_name}', $json.customer_profile.first_name)}}",
+        "emailType": "html", 
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n        .content { background: white; padding: 30px; border: 1px solid #ddd; }\n        .testimonial { background: #f8f9fa; padding: 20px; border-left: 5px solid #28a745; margin: 20px 0; font-style: italic; }\n        .cta-button { background: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; margin: 20px 0; }\n        .scarcity { background: #fff3cd; padding: 15px; border: 1px solid #ffeaa7; border-radius: 5px; margin: 20px 0; }\n        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>😊 Still Thinking It Over, {{$json.customer_profile.first_name}}?</h1>\n            <p>I completely understand - let me help!</p>\n        </div>\n        \n        <div class=\"content\">\n            <p>Hi {{$json.customer_profile.first_name}},</p>\n            \n            <p>I noticed you haven't completed your purchase yet. That's totally normal - I know making the right choice takes time!</p>\n            \n            <p>Since you're considering these items, I thought you'd love to hear from other customers:</p>\n            \n            <div class=\"testimonial\">\n                <p>\"I was hesitant at first, but I'm SO glad I bought this. The quality exceeded my expectations!\" - Jennifer M. ⭐⭐⭐⭐⭐</p>\n            </div>\n            \n            <div class=\"testimonial\">\n                <p>\"Fast shipping, great customer service, and the product is exactly as described. Will definitely order again!\" - Michael R. ⭐⭐⭐⭐⭐</p>\n            </div>\n            \n            <div class=\"scarcity\">\n                <p><strong>⚠️ Inventory Update:</strong> {{$json.psychological_triggers[1]}}</p>\n            </div>\n            \n            <p><strong>Your {{$json.recovery_sequence[1].personalization.discount_amount}}% discount is still active!</strong></p>\n            <p>Code: <strong>{{$json.recovery_sequence[1].personalization.discount_code}}</strong></p>\n            \n            <div style=\"text-align: center;\">\n                <a href=\"{{$json.checkout_url}}?discount={{$json.recovery_sequence[1].personalization.discount_code}}\" class=\"cta-button\">\n                    Yes, I Want These Items! 💚\n                </a>\n            </div>\n            \n            <p>Still have questions? Here are our most common ones:</p>\n            <ul>\n                <li><strong>Shipping:</strong> Free on orders over $75, 2-3 business days</li>\n                <li><strong>Returns:</strong> 30-day hassle-free returns</li>\n                <li><strong>Quality:</strong> All items backed by our satisfaction guarantee</li>\n            </ul>\n            \n            <p>I'm here if you need any help deciding!</p>\n            \n            <p>Cheers,<br>\nSarah Chen<br>\nCustomer Success Team</p>\n        </div>\n        \n        <div class=\"footer\">\n            <p>{{$json.recovery_sequence[1].personalization.social_proof}}</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-2", 
+      "name": "📧 Email 2: Social Proof",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1560, 300],
+      "notes": "📧 Second recovery email\n⭐ Social proof and testimonials\n❓ Address common objections"
+    },
+    {
+      "parameters": {
+        "amount": 48,
+        "unit": "hours"
+      },
+      "id": "wait-48h",
+      "name": "⏰ Wait 48 Hours",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1780, 300],
+      "notes": "⏰ Final follow-up timing\n🎯 Last chance conversion\n⚰️ Final urgency push"
+    },
+    {
+      "parameters": {
+        "to": "={{$json.customer_profile.email}}",
+        "subject": "Last chance: Your cart expires soon ⏰",
+        "emailType": "html",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n        .content { background: white; padding: 30px; border: 1px solid #ddd; }\n        .final-offer { background: #e74c3c; color: white; padding: 25px; text-align: center; border-radius: 10px; margin: 20px 0; }\n        .cta-button { background: #27ae60; color: white; padding: 20px 40px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; margin: 20px 0; font-size: 18px; }\n        .countdown { background: #2c3e50; color: white; padding: 20px; text-align: center; border-radius: 5px; margin: 20px 0; }\n        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>⏰ Final Notice: Cart Expires in 6 Hours</h1>\n            <p>{{$json.customer_profile.first_name}}, this is your last chance!</p>\n        </div>\n        \n        <div class=\"content\">\n            <p>Hi {{$json.customer_profile.first_name}},</p>\n            \n            <p>I hate to be the bearer of bad news, but your cart is about to expire...</p>\n            \n            <div class=\"countdown\">\n                <h2>⏰ 6 HOURS LEFT</h2>\n                <p>After this, your items will be released to other customers</p>\n            </div>\n            \n            <div class=\"final-offer\">\n                <h3>🚨 FINAL OFFER</h3>\n                <p>I'm extending your <strong>{{$json.recovery_sequence[2].personalization.discount_amount}}% discount</strong> for 6 more hours ONLY</p>\n                <p>Code: <strong>{{$json.recovery_sequence[2].personalization.discount_code}}</strong></p>\n            </div>\n            \n            <p>Look, I know online shopping can be overwhelming. But thousands of customers love these products, and I'd hate for you to miss out.</p>\n            \n            <p><strong>What happens if you wait:</strong></p>\n            <ul>\n                <li>❌ Your discount expires forever</li>\n                <li>❌ Items may go out of stock</li>\n                <li>❌ Prices may increase</li>\n                <li>❌ You'll have to start your research over</li>\n            </ul>\n            \n            <div style=\"text-align: center;\">\n                <a href=\"{{$json.checkout_url}}?discount={{$json.recovery_sequence[2].personalization.discount_code}}\" class=\"cta-button\">\n                    SECURE MY ITEMS NOW 🔒\n                </a>\n            </div>\n            \n            <p>This is my final email about this cart. After 6 hours, your items will be available to other customers.</p>\n            \n            <p>Don't let this opportunity slip away!</p>\n            \n            <p>Last chance,<br>\nSarah Chen<br>\nCustomer Success Team</p>\n        </div>\n        \n        <div class=\"footer\">\n            <p>This is the final email about your abandoned cart.</p>\n            <p>{{$json.psychological_triggers[2]}}</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-3",
+      "name": "📧 Email 3: Final Urgency",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2000, 300],
+      "notes": "📧 Final recovery email\n🚨 Maximum urgency and scarcity\n⏰ Last chance offer"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "cart_recovery_analytics", 
+        "columns": "email, customer_segment, cart_value, sequence_sent, discount_offered, created_at",
+        "additionalFields": {
+          "values": "'{{$json.customer_profile.email}}', '{{$json.customer_segment}}', {{$json.customer_profile.cart_value}}, 3, {{$json.recovery_sequence[0].personalization.discount_amount}}, NOW()"
+        }
+      },
+      "id": "analytics-tracking",
+      "name": "📊 Track Recovery Campaign",
+      "type": "n8n-nodes-base.postgres", 
+      "typeVersion": 2.4,
+      "position": [2220, 300],
+      "notes": "📈 Track recovery performance\n💰 ROI measurement\n🔍 A/B testing data"
+    }
+  ],
+  "connections": {
+    "🛒 Cart Abandoned Webhook": {
+      "main": [
+        [
+          {
+            "node": "⏰ Wait 30 Minutes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Wait 30 Minutes": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Recovery Strategy",
+            "type": "main", 
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 AI Recovery Strategy": {
+      "main": [
+        [
+          {
+            "node": "🎨 Personalization Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎨 Personalization Engine": {
+      "main": [
+        [
+          {
+            "node": "📧 Start Email Sequence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📧 Start Email Sequence": {
+      "main": [
+        [
+          {
+            "node": "📧 Email 1: Recovery Offer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "⏰ Wait 24 Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Wait 24 Hours": {
+      "main": [
+        [
+          {
+            "node": "📧 Email 2: Social Proof",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📧 Email 2: Social Proof": {
+      "main": [
+        [
+          {
+            "node": "⏰ Wait 48 Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Wait 48 Hours": {
+      "main": [
+        [
+          {
+            "node": "📧 Email 3: Final Urgency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📧 Email 3: Final Urgency": {
+      "main": [
+        [
+          {
+            "node": "📊 Track Recovery Campaign",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z", 
+      "id": "cart-recovery",
+      "name": "Cart Recovery"
+    },
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "high-conversion",
+      "name": "High Conversion"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-30T10:00:00.000Z",
+  "versionId": "1.0.0"
+}
