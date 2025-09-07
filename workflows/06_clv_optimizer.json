@@ -66,7 +66,7 @@
     },
     {
       "parameters": {
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "gemini-2.0-flash-exp",
         "prompt": "=You are a customer analytics expert. Analyze this customer data to calculate their Lifetime Value and create segmentation.\n\nCustomer Data: {{$node[\"customer-data\"].json.customer}}\nOrder History: {{$node[\"order-history\"].json.orders}}\nBehavior Event: {{$node[\"shopify-webhook\"].json}}\n\nAnalyze:\n1. RFM Score (Recency, Frequency, Monetary)\n2. Purchase patterns and seasonality\n3. Product category preferences\n4. Buying stage in customer journey\n5. Churn risk indicators\n6. Cross-sell/upsell opportunities\n\nCalculate:\n- Historical CLV\n- Predicted 12-month CLV\n- Customer segment (VIP, Loyal, At-Risk, New)\n- Engagement score (1-100)\n\nProvide JSON response with customer_id, clv_current, clv_predicted, segment, engagement_score, rfm_scores, recommendations, and next_best_actions.",
         "options": {
           "temperature": 0.2,

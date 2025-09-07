@@ -29,7 +29,7 @@
     },
     {
       "parameters": {
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "gemini-2.0-flash-exp",
         "prompt": "=You are an expert ecommerce conversion specialist. Analyze this abandoned cart and create a personalized recovery strategy.\n\nCart Data: {{JSON.stringify($json, null, 2)}}\n\nAnalyze:\n1. **Cart Value**: High/medium/low value classification\n2. **Product Types**: Categories, price points, urgency factors\n3. **Customer Profile**: New vs returning, purchase history, behavior\n4. **Abandonment Context**: Time spent, pages visited, exit point\n5. **Recovery Psychology**: Best messaging approach and incentives\n\nCustomer Segments:\n- **High-Value Returner**: Previous purchases >$500, cart >$200\n- **Price-Conscious Shopper**: Multiple cart abandonments, price-sensitive\n- **Impulse Buyer**: Quick browse, left at checkout, needs urgency\n- **Research Buyer**: Long session, multiple visits, needs validation\n- **New Customer**: First visit, needs trust building\n\nReturn a JSON strategy with:\n- customer_segment\n- recovery_sequence (3 email strategy)\n- personalization_data\n- discount_recommendation\n- urgency_tactics\n- psychological_triggers",
         "options": {
           "temperature": 0.4,

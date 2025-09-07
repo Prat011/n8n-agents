@@ -56,16 +56,16 @@
     },
     {
       "parameters": {
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "gemini-2.0-flash-exp",
         "prompt": "=You are an expert Amazon pricing strategist. Analyze this competitor pricing data and recommend optimal prices for our products.\n\nCompetitor Data: {{$json}}\n\nFor each ASIN, consider:\n1. Current competitor prices vs our price\n2. Price history and trends\n3. Buy Box eligibility\n4. Optimal margin vs volume balance\n5. Market positioning strategy\n\nProvide specific price recommendations with reasoning for each product. Format as JSON with ASIN, current_price, recommended_price, confidence_score, and reasoning.",
         "options": {
           "temperature": 0.3,
           "maxTokens": 2000
         }
       },
-      "id": "claude-pricing-ai",
-      "name": "🧠 AI Pricing Strategy",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "id": "gemini-pricing-ai",
+      "name": "🧠 Gemini Pricing Strategy",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
       "typeVersion": 1.3,
       "position": [680, 300],
       "notes": "🎯 AI analyzes competitor data\n📊 Recommends optimal pricing strategy\n🎲 Considers margins, Buy Box, trends"

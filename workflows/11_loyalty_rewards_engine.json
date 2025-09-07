@@ -1,0 +1,301 @@
+{
+  "name": "🏆 Loyalty & Rewards Program Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "customer-action",
+        "options": {}
+      },
+      "id": "customer-action-trigger",
+      "name": "🎯 Customer Action Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "customer-action-webhook",
+      "notes": "🔥 DEMO: Track customer actions (purchase, review, referral)\n💰 ROI: 20-30% increase in repeat purchases\n⚡ Impact: Automated loyalty point management"
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.0-flash-exp",
+        "prompt": "=You are a loyalty program specialist. Analyze this customer action and determine appropriate reward strategy.\n\nCustomer Action Data: {{JSON.stringify($json, null, 2)}}\n\nAnalyze:\n1. **Action Type**: Purchase, review, referral, social share, birthday, etc.\n2. **Customer Tier**: New, Bronze, Silver, Gold, Platinum based on history\n3. **Action Value**: Monetary value, engagement value, strategic importance\n4. **Reward Calculation**: Points, bonuses, multipliers, special rewards\n5. **Engagement Opportunities**: Upsells, challenges, milestone notifications\n\nCustomer Tiers:\n- **New Customer**: 0-2 orders, base point rate\n- **Bronze**: 3-9 orders, 1.2x points multiplier\n- **Silver**: 10-24 orders, 1.5x points + exclusive offers\n- **Gold**: 25-49 orders, 2x points + early access\n- **Platinum**: 50+ orders, 2.5x points + VIP treatment\n\nAction Values:\n- **Purchase**: 1 point per $1 spent + tier multiplier\n- **Product Review**: 50 base points\n- **Photo Review**: 100 base points\n- **Referral Success**: 500 points + 10% of referee's first order\n- **Social Share**: 25 points\n- **Birthday**: Tier-based bonus (50-250 points)\n- **Milestone Achievement**: Special bonus rewards\n\nReturn JSON with:\n- customer_tier\n- action_category\n- base_points_earned\n- bonus_multiplier\n- total_points_awarded\n- special_rewards\n- next_milestone_info\n- personalized_message\n- suggested_actions",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 1500
+        }
+      },
+      "id": "loyalty-ai-engine",
+      "name": "🧠 Loyalty AI Engine",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [460, 300],
+      "notes": "🎯 AI analyzes customer behavior\n🏆 Calculates appropriate rewards\n🎪 Personalized engagement strategy"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response and enrich with customer data\nconst actionData = $input.first().json;\nconst loyaltyStrategy = JSON.parse($input.last().json.choices[0].message.content);\n\n// Enhanced customer profile with loyalty data\nconst customerProfile = {\n  customer_id: actionData.customer_id,\n  email: actionData.customer_email,\n  first_name: actionData.customer_name || 'Valued Customer',\n  current_tier: loyaltyStrategy.customer_tier,\n  lifetime_value: actionData.lifetime_spent || 0,\n  total_orders: actionData.order_count || 0,\n  current_points_balance: actionData.current_points || 0,\n  referrals_made: actionData.referral_count || 0,\n  reviews_written: actionData.review_count || 0,\n  last_purchase_date: actionData.last_order_date || null,\n  preferred_categories: actionData.favorite_categories || ['General'],\n  communication_preferences: actionData.preferences || {\n    email: true,\n    sms: false,\n    push: true\n  }\n};\n\n// Calculate new points balance\nconst newPointsBalance = customerProfile.current_points_balance + loyaltyStrategy.total_points_awarded;\n\n// Determine tier progression\nconst tierRequirements = {\n  'Bronze': { orders: 3, spending: 150 },\n  'Silver': { orders: 10, spending: 500 },\n  'Gold': { orders: 25, spending: 1500 },\n  'Platinum': { orders: 50, spending: 3000 }\n};\n\nconst checkTierUpgrade = (profile) => {\n  const currentOrders = profile.total_orders;\n  const currentSpending = profile.lifetime_value;\n  \n  for (const [tier, requirements] of Object.entries(tierRequirements)) {\n    if (currentOrders >= requirements.orders && currentSpending >= requirements.spending) {\n      if (tier !== profile.current_tier) {\n        return {\n          upgraded: true,\n          new_tier: tier,\n          upgrade_bonus: {\n            'Bronze': 100,\n            'Silver': 250,\n            'Gold': 500,\n            'Platinum': 1000\n          }[tier]\n        };\n      }\n    }\n  }\n  return { upgraded: false };\n};\n\nconst tierUpgrade = checkTierUpgrade(customerProfile);\n\n// Generate milestone achievements\nconst milestones = {\n  'first_review': customerProfile.reviews_written === 1 ? { achieved: true, bonus: 100, message: 'First Review Milestone!' } : null,\n  'fifth_order': customerProfile.total_orders === 5 ? { achieved: true, bonus: 200, message: 'Frequent Shopper Milestone!' } : null,\n  'first_referral': customerProfile.referrals_made === 1 ? { achieved: true, bonus: 150, message: 'Brand Ambassador Milestone!' } : null,\n  'spending_500': customerProfile.lifetime_value >= 500 && customerProfile.lifetime_value < 600 ? { achieved: true, bonus: 300, message: 'Spending Champion!' } : null\n};\n\nconst achievedMilestones = Object.entries(milestones)\n  .filter(([key, milestone]) => milestone && milestone.achieved)\n  .map(([key, milestone]) => milestone);\n\n// Calculate final points including milestones and tier upgrades\nlet finalPointsAwarded = loyaltyStrategy.total_points_awarded;\nlet bonusMessages = [];\n\nif (tierUpgrade.upgraded) {\n  finalPointsAwarded += tierUpgrade.upgrade_bonus;\n  bonusMessages.push(`🎉 Congratulations! You've been upgraded to ${tierUpgrade.new_tier} tier!`);\n}\n\nachievedMilestones.forEach(milestone => {\n  finalPointsAwarded += milestone.bonus;\n  bonusMessages.push(`🏆 ${milestone.message} +${milestone.bonus} bonus points!`);\n});\n\n// Create reward notification content\nconst rewardNotification = {\n  customer_profile: {\n    ...customerProfile,\n    new_points_balance: newPointsBalance + (tierUpgrade.upgraded ? tierUpgrade.upgrade_bonus : 0) + achievedMilestones.reduce((sum, m) => sum + m.bonus, 0),\n    new_tier: tierUpgrade.upgraded ? tierUpgrade.new_tier : customerProfile.current_tier\n  },\n  action_details: {\n    action_type: loyaltyStrategy.action_category,\n    base_points: loyaltyStrategy.base_points_earned,\n    multiplier: loyaltyStrategy.bonus_multiplier,\n    total_points: finalPointsAwarded,\n    action_description: actionData.action_description || `Earned points for ${loyaltyStrategy.action_category}`\n  },\n  tier_upgrade: tierUpgrade,\n  milestones_achieved: achievedMilestones,\n  bonus_messages: bonusMessages,\n  next_milestone: loyaltyStrategy.next_milestone_info,\n  personalized_message: loyaltyStrategy.personalized_message,\n  suggested_actions: loyaltyStrategy.suggested_actions,\n  special_rewards: loyaltyStrategy.special_rewards || [],\n  created_at: new Date().toISOString()\n};\n\nreturn [{json: rewardNotification}];"
+      },
+      "id": "rewards-calculator",
+      "name": "🏆 Rewards Calculator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "notes": "🏆 Calculates final point values\n🎯 Processes tier upgrades\n🎉 Manages milestone achievements"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": "customer_loyalty_profile",
+        "updateKey": "customer_id",
+        "columns": "points_balance, tier_level, total_orders, lifetime_value, last_activity, tier_upgrade_date",
+        "additionalFields": {
+          "values": "{{$json.customer_profile.new_points_balance}}, '{{$json.customer_profile.new_tier}}', {{$json.customer_profile.total_orders}}, {{$json.customer_profile.lifetime_value}}, NOW(), {{$json.tier_upgrade.upgraded ? 'NOW()' : 'tier_upgrade_date'}}"
+        }
+      },
+      "id": "update-loyalty-profile",
+      "name": "💾 Update Loyalty Profile",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [900, 200],
+      "notes": "💾 Updates customer loyalty database\n🏆 Saves tier progression\n📈 Maintains point balance history"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "loyalty_point_transactions",
+        "columns": "customer_id, action_type, points_earned, point_source, transaction_date, order_reference",
+        "additionalFields": {
+          "values": "'{{$json.customer_profile.customer_id}}', '{{$json.action_details.action_type}}', {{$json.action_details.total_points}}, 'automated_reward', NOW(), '{{$input.first().json.order_id || null}}'"
+        }
+      },
+      "id": "log-transaction",
+      "name": "📝 Log Point Transaction",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [900, 300],
+      "notes": "📝 Records point transaction\n🔍 Maintains audit trail\n📊 Enables loyalty analytics"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-email",
+              "leftValue": "={{$json.customer_profile.email}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "check-notification-preference",
+      "name": "📧 Check Notification Settings",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [900, 400],
+      "notes": "📧 Validates email preferences\n✅ Respects communication settings\n🎯 Ensures targeted messaging"
+    },
+    {
+      "parameters": {
+        "to": "={{$json.customer_profile.email}}",
+        "subject": "🎉 You earned {{$json.action_details.total_points}} loyalty points!",
+        "emailType": "html",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n        .content { background: white; padding: 30px; border: 1px solid #ddd; }\n        .points-summary { background: #f8f9fa; padding: 25px; border-radius: 10px; margin: 20px 0; text-align: center; }\n        .tier-badge { background: linear-gradient(45deg, #ffd700, #ffed4a); color: #333; padding: 10px 20px; border-radius: 25px; display: inline-block; font-weight: bold; margin: 10px; }\n        .milestone { background: #e8f5e8; padding: 15px; border-left: 5px solid #28a745; margin: 10px 0; }\n        .next-milestone { background: #fff3cd; padding: 15px; border-left: 5px solid #ffc107; margin: 20px 0; }\n        .cta-button { background: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; margin: 20px 0; }\n        .reward-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }\n        .reward-item { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }\n        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>🎉 Congratulations {{$json.customer_profile.first_name}}!</h1>\n            <p>You just earned amazing loyalty rewards!</p>\n        </div>\n        \n        <div class=\"content\">\n            <div class=\"points-summary\">\n                <h2>{{$json.action_details.total_points}} Points Earned! 🎯</h2>\n                <p><strong>Action:</strong> {{$json.action_details.action_description}}</p>\n                <p><strong>Your Balance:</strong> {{$json.customer_profile.new_points_balance}} points</p>\n                <div class=\"tier-badge\">{{$json.customer_profile.new_tier}} Member</div>\n            </div>\n            \n            {{#if $json.tier_upgrade.upgraded}}\n            <div class=\"milestone\">\n                <h3>🚀 TIER UPGRADE!</h3>\n                <p>Congratulations! You've been upgraded to <strong>{{$json.tier_upgrade.new_tier}}</strong> status!</p>\n                <p>Bonus: +{{$json.tier_upgrade.upgrade_bonus}} points</p>\n            </div>\n            {{/if}}\n            \n            {{#each $json.milestones_achieved}}\n            <div class=\"milestone\">\n                <h4>🏆 {{this.message}}</h4>\n                <p>Milestone bonus: +{{this.bonus}} points!</p>\n            </div>\n            {{/each}}\n            \n            <p>{{$json.personalized_message}}</p>\n            \n            {{#if $json.next_milestone}}\n            <div class=\"next-milestone\">\n                <h3>🎯 Next Milestone</h3>\n                <p>{{$json.next_milestone.description}}</p>\n                <p><strong>Reward:</strong> {{$json.next_milestone.reward}}</p>\n                <p><strong>Progress:</strong> {{$json.next_milestone.progress}}</p>\n            </div>\n            {{/if}}\n            \n            {{#if $json.special_rewards.length}}\n            <h3>🎁 Special Rewards Available</h3>\n            <div class=\"reward-grid\">\n                {{#each $json.special_rewards}}\n                <div class=\"reward-item\">\n                    <h4>{{this.name}}</h4>\n                    <p>{{this.description}}</p>\n                    <p><strong>{{this.points_cost}} points</strong></p>\n                </div>\n                {{/each}}\n            </div>\n            {{/if}}\n            \n            <h3>🚀 Suggested Actions</h3>\n            <ul>\n                {{#each $json.suggested_actions}}\n                <li>{{this}}</li>\n                {{/each}}\n            </ul>\n            \n            <div style=\"text-align: center;\">\n                <a href=\"https://yourstore.com/loyalty-dashboard\" class=\"cta-button\">\n                    View Your Rewards Dashboard 🏆\n                </a>\n            </div>\n            \n            <p>Keep earning points with every purchase, review, and referral!</p>\n            \n            <p>Thanks for being a loyal customer,<br>\nThe Loyalty Team</p>\n        </div>\n        \n        <div class=\"footer\">\n            <p>You're receiving this because you're enrolled in our loyalty program.</p>\n            <p>Manage your preferences: <a href=\"https://yourstore.com/preferences\">Update Settings</a></p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "loyalty-notification",
+      "name": "📧 Loyalty Notification Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1120, 400],
+      "notes": "📧 Sends personalized loyalty update\n🎉 Celebrates achievements\n🎯 Encourages continued engagement"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "tier-upgrade-check",
+              "leftValue": "={{$json.tier_upgrade.upgraded}}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "tier-upgrade-filter",
+      "name": "🚀 Tier Upgrade Filter", 
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1340, 300],
+      "notes": "🚀 Triggers for tier upgrades only\n🎉 Special VIP treatment\n💎 Exclusive upgrade benefits"
+    },
+    {
+      "parameters": {
+        "to": "={{$json.customer_profile.email}}",
+        "subject": "🎉 Welcome to {{$json.tier_upgrade.new_tier}} Status - Exclusive Benefits Inside!",
+        "emailType": "html",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background: linear-gradient(135deg, #ffd700 0%, #ffed4a 100%); color: #333; padding: 40px; text-align: center; border-radius: 10px 10px 0 0; }\n        .content { background: white; padding: 30px; border: 1px solid #ddd; }\n        .vip-badge { background: linear-gradient(45deg, #e74c3c, #c0392b); color: white; padding: 20px; border-radius: 15px; text-align: center; margin: 20px 0; }\n        .benefits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 25px 0; }\n        .benefit-card { background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: center; border-left: 5px solid #28a745; }\n        .cta-button { background: #e74c3c; color: white; padding: 20px 40px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; margin: 20px 0; font-size: 16px; }\n        .exclusive { background: #fff3cd; padding: 20px; border-radius: 10px; margin: 20px 0; }\n        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>🎉 CONGRATULATIONS {{$json.customer_profile.first_name}}!</h1>\n            <h2>You've Been Upgraded to {{$json.tier_upgrade.new_tier}} Status!</h2>\n        </div>\n        \n        <div class=\"content\">\n            <div class=\"vip-badge\">\n                <h2>👑 Welcome to the VIP Club!</h2>\n                <p>You're now part of our elite {{$json.tier_upgrade.new_tier}} members</p>\n            </div>\n            \n            <p>Dear {{$json.customer_profile.first_name}},</p>\n            \n            <p>This is a very special moment! Your loyalty and continued support have earned you an exclusive tier upgrade. You're now a <strong>{{$json.tier_upgrade.new_tier}}</strong> member with incredible new benefits!</p>\n            \n            <h3>🎁 Your New {{$json.tier_upgrade.new_tier}} Benefits</h3>\n            \n            <div class=\"benefits-grid\">\n                <div class=\"benefit-card\">\n                    <h4>⚡ Points Multiplier</h4>\n                    <p>Earn {{$json.tier_upgrade.new_tier === 'Gold' ? '2x' : $json.tier_upgrade.new_tier === 'Silver' ? '1.5x' : '2.5x'}} points on every purchase</p>\n                </div>\n                \n                <div class=\"benefit-card\">\n                    <h4>🚚 Premium Shipping</h4>\n                    <p>{{$json.tier_upgrade.new_tier === 'Platinum' ? 'Free express shipping' : 'Priority shipping discounts'}}</p>\n                </div>\n                \n                <div class=\"benefit-card\">\n                    <h4>🎯 Early Access</h4>\n                    <p>Exclusive previews of new products and sales</p>\n                </div>\n                \n                <div class=\"benefit-card\">\n                    <h4>🎁 Birthday Rewards</h4>\n                    <p>{{$json.tier_upgrade.new_tier === 'Platinum' ? '250' : $json.tier_upgrade.new_tier === 'Gold' ? '200' : '150'}} bonus birthday points</p>\n                </div>\n            </div>\n            \n            <div class=\"exclusive\">\n                <h3>🌟 Exclusive {{$json.tier_upgrade.new_tier}} Perks</h3>\n                <ul>\n                    <li>{{$json.tier_upgrade.new_tier === 'Platinum' ? 'Dedicated VIP customer support line' : 'Priority customer support'}}</li>\n                    <li>{{$json.tier_upgrade.new_tier === 'Platinum' ? 'Complimentary gift wrapping' : 'Exclusive member-only promotions'}}</li>\n                    <li>{{$json.tier_upgrade.new_tier === 'Gold' || $json.tier_upgrade.new_tier === 'Platinum' ? 'Quarterly surprise gifts' : 'Special milestone rewards'}}</li>\n                    <li>Access to {{$json.tier_upgrade.new_tier}}-only events and experiences</li>\n                </ul>\n            </div>\n            \n            <p><strong>Upgrade Bonus:</strong> We've added {{$json.tier_upgrade.upgrade_bonus}} bonus points to your account to celebrate!</p>\n            \n            <div style=\"text-align: center;\">\n                <a href=\"https://yourstore.com/vip-dashboard\" class=\"cta-button\">\n                    Explore Your {{$json.tier_upgrade.new_tier}} Dashboard 👑\n                </a>\n            </div>\n            \n            <p>Thank you for being such an incredible customer. We can't wait to continue this journey with you!</p>\n            \n            <p>Exclusively yours,<br>\nThe VIP Experience Team</p>\n        </div>\n        \n        <div class=\"footer\">\n            <p>You're receiving this exclusive communication as a {{$json.tier_upgrade.new_tier}} member.</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "vip-upgrade-email",
+      "name": "👑 VIP Tier Upgrade Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1560, 300],
+      "notes": "👑 Special tier upgrade celebration\n💎 Highlights VIP benefits\n🎉 Creates excitement and exclusivity"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "loyalty_campaign_analytics",
+        "columns": "customer_id, action_type, points_awarded, tier_level, campaign_date, engagement_score",
+        "additionalFields": {
+          "values": "'{{$json.customer_profile.customer_id}}', '{{$json.action_details.action_type}}', {{$json.action_details.total_points}}, '{{$json.customer_profile.new_tier}}', NOW(), {{$json.milestones_achieved.length + ($json.tier_upgrade.upgraded ? 1 : 0)}}"
+        }
+      },
+      "id": "analytics-tracking",
+      "name": "📊 Loyalty Analytics Tracking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1780, 400],
+      "notes": "📈 Track loyalty program performance\n💰 ROI measurement and optimization\n🔍 Customer engagement analytics"
+    }
+  ],
+  "connections": {
+    "🎯 Customer Action Trigger": {
+      "main": [
+        [
+          {
+            "node": "🧠 Loyalty AI Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Loyalty AI Engine": {
+      "main": [
+        [
+          {
+            "node": "🏆 Rewards Calculator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🏆 Rewards Calculator": {
+      "main": [
+        [
+          {
+            "node": "💾 Update Loyalty Profile",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📝 Log Point Transaction",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📧 Check Notification Settings",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🚀 Tier Upgrade Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📧 Check Notification Settings": {
+      "main": [
+        [
+          {
+            "node": "📧 Loyalty Notification Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🚀 Tier Upgrade Filter": {
+      "main": [
+        [
+          {
+            "node": "👑 VIP Tier Upgrade Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📧 Loyalty Notification Email": {
+      "main": [
+        [
+          {
+            "node": "📊 Loyalty Analytics Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "👑 VIP Tier Upgrade Email": {
+      "main": [
+        [
+          {
+            "node": "📊 Loyalty Analytics Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "loyalty-program",
+      "name": "Loyalty Program"
+    },
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "customer-retention",
+      "name": "Customer Retention"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-30T10:00:00.000Z",
+  "versionId": "1.0.0"
+}

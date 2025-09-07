@@ -127,7 +127,7 @@
     },
     {
       "parameters": {
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "gemini-2.0-flash-exp",
         "prompt": "=You are an expert demand forecasting analyst. Analyze multiple data sources to predict product demand for the next 30-90 days.\n\nSales History: {{$node[\"sales-history\"].json}}\nGoogle Trends: {{$node[\"google-trends\"].json}}\nSocial Media: {{$node[\"social-mentions\"].json}}\nWeather Forecast: {{$node[\"weather-data\"].json}}\n\nAnalyze:\n1. Historical sales patterns and seasonality\n2. Trending keywords related to our product categories\n3. Social sentiment and viral product mentions\n4. Weather impact on relevant products\n5. External events (holidays, sports, economic)\n\nFor each product category, provide:\n- 30-day demand forecast (units and revenue)\n- 90-day trend prediction\n- Key demand drivers and risks\n- Recommended inventory levels\n- New opportunity products\n- Confidence intervals (high/medium/low)\n\nReturn JSON with detailed forecasts, reasoning, and actionable recommendations.",
         "options": {
           "temperature": 0.2,

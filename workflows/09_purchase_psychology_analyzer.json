@@ -64,7 +64,7 @@
     },
     {
       "parameters": {
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "gemini-2.0-flash-exp",
         "prompt": "=You are an expert consumer psychologist specializing in purchase behavior analysis. Analyze this customer's journey to understand their psychological state and buying motivations.\n\nCustomer Journey Event: {{$node[\"journey-webhook\"].json}}\nBehavior History: {{$node[\"behavior-history\"].json}}\nHeatmap Data: {{$node[\"heatmap-data\"].json}}\nProduct Data: {{$node[\"product-psychology\"].json}}\n\nAnalyze the customer's psychological profile:\n\n1. **Buying Stage**: Awareness → Interest → Consideration → Intent → Purchase\n2. **Psychological Triggers**: \n   - Scarcity (limited time/stock)\n   - Social proof (reviews, ratings)\n   - Authority (expert recommendations)\n   - Reciprocity (free trials, samples)\n   - Commitment (personalization)\n   - Liking (brand affinity)\n\n3. **Decision Factors**:\n   - Rational vs Emotional drivers\n   - Price sensitivity indicators\n   - Feature importance ranking\n   - Trust and credibility signals\n   - Urgency and timing factors\n\n4. **Friction Points**:\n   - Hesitation indicators\n   - Comparison shopping behavior\n   - Information seeking patterns\n   - Abandonment risk factors\n\n5. **Conversion Optimization**:\n   - Optimal messaging for this customer\n   - Psychological pricing strategies\n   - Social proof optimization\n   - Urgency tactics effectiveness\n   - Personalization opportunities\n\nProvide detailed JSON with psychological_profile, buying_stage, dominant_triggers, friction_analysis, optimization_recommendations, and predicted_conversion_probability.",
         "options": {
           "temperature": 0.1,

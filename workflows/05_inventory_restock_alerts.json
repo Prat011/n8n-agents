@@ -21,7 +21,7 @@
     },
     {
       "parameters": {
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "gemini-2.0-flash-exp",
         "prompt": "=You are an expert inventory management AI. Analyze this inventory data and predict restock needs.\n\nInventory Data: {{JSON.stringify($json, null, 2)}}\n\nConsider these factors:\n1. **Current Stock Levels**: Actual vs minimum thresholds\n2. **Sales Velocity**: Daily/weekly sales rates by SKU\n3. **Seasonality**: Upcoming events, holidays, trends\n4. **Lead Times**: Supplier delivery schedules\n5. **Safety Stock**: Buffer for demand spikes\n6. **Cost Optimization**: Bulk order discounts vs carrying costs\n\nFor each SKU, calculate:\n- Days of inventory remaining\n- Recommended reorder date\n- Optimal order quantity\n- Priority level (Critical/High/Medium/Low)\n- Cost impact if out of stock\n\nReturn JSON array with restock recommendations including reasoning for each decision.",
         "options": {
           "temperature": 0.2,

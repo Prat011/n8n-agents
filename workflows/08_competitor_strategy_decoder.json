@@ -163,7 +163,7 @@
     },
     {
       "parameters": {
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "gemini-2.0-flash-exp",
         "prompt": "=You are an expert competitive intelligence analyst. Analyze multiple data sources to decode competitor strategies and predict their next moves.\n\nProduct Data: {{$node[\"product-scraping\"].json}}\nAdvertising Data: {{$node[\"ad-intelligence\"].json}}\nSocial Intelligence: {{$node[\"social-intelligence\"].json}}\nNews & Announcements: {{$node[\"news-intelligence\"].json}}\n\nAnalyze competitor strategies across:\n1. **Pricing Strategy**: Pattern analysis, psychological pricing, promotional cycles\n2. **Product Strategy**: New launches, discontinuations, feature updates, positioning\n3. **Marketing Strategy**: Ad spend patterns, messaging evolution, target audiences\n4. **Supply Chain**: Inventory levels, stock-outs, supplier relationships\n5. **Market Positioning**: Brand messaging, value propositions, customer segments\n\nFor each major competitor, provide:\n- Current strategic focus and recent changes\n- Identified weaknesses and vulnerabilities  \n- Predicted next moves (30-90 days)\n- Counter-strategy recommendations\n- Market opportunities they're missing\n- Risk assessment for our business\n\nReturn detailed JSON with competitor profiles, strategic insights, predictions, and actionable counter-strategies.",
         "options": {
           "temperature": 0.1,

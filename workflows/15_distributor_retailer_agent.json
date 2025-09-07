@@ -1,0 +1,351 @@
+{
+  "name": "🤝 Distributor/Retailer Relationship Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "relationship-trigger",
+      "name": "⏰ Daily Relationship Assessment",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "🔥 DEMO: Daily partnership health monitoring\n💰 ROI: 25-40% improvement in partner satisfaction\n⚡ Impact: Proactive relationship management"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "partners",
+        "columns": "partner_id, partner_name, partner_type, contact_email, contact_phone, contract_start_date, contract_end_date, territory, product_categories, monthly_target, current_performance",
+        "additionalFields": {
+          "where": "active = true"
+        }
+      },
+      "id": "partner-database",
+      "name": "💼 Partner Database Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [460, 200],
+      "notes": "Retrieves active partner information\nTracks: Contract details, performance targets, contact info"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "sales_performance",
+        "columns": "partner_id, period, sales_volume, sales_revenue, order_count, average_order_value, growth_rate, target_achievement",
+        "additionalFields": {
+          "where": "period >= CURRENT_DATE - INTERVAL '90 days'"
+        }
+      },
+      "id": "sales-performance",
+      "name": "📊 Sales Performance Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [460, 400],
+      "notes": "Collects 90-day sales performance data\nTracks: Revenue, volume, growth, target achievement"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "partner_communications",
+        "columns": "partner_id, communication_date, communication_type, subject, sentiment_score, response_time, follow_up_required",
+        "additionalFields": {
+          "where": "communication_date >= CURRENT_DATE - INTERVAL '30 days'"
+        }
+      },
+      "id": "communication-history",
+      "name": "💬 Communication History",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [460, 600],
+      "notes": "Analyzes recent communication patterns\nTracks: Email frequency, response times, sentiment"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "partner_feedback",
+        "columns": "partner_id, survey_date, overall_satisfaction, product_quality_rating, support_rating, pricing_rating, comments",
+        "additionalFields": {
+          "where": "survey_date >= CURRENT_DATE - INTERVAL '180 days'"
+        }
+      },
+      "id": "partner-feedback",
+      "name": "📝 Partner Feedback & Surveys",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [460, 800],
+      "notes": "Collects partner satisfaction surveys\nTracks: NPS scores, ratings, qualitative feedback"
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.0-flash-exp",
+        "prompt": "=You are an expert partnership relationship manager. Analyze this comprehensive partner data and provide strategic relationship insights.\n\nPartner Profiles: {{$json.partners || 'No partner data'}}\nSales Performance: {{$json.sales || 'No sales data'}}\nCommunication History: {{$json.communications || 'No communication data'}}\nPartner Feedback: {{$json.feedback || 'No feedback data'}}\n\nFor each partner, provide:\n\n1. **Relationship Health Score (1-100)**\n   - Overall partnership health assessment\n   - Key contributing factors\n   - Trend analysis (improving/declining/stable)\n\n2. **Performance Analysis**\n   - Sales target achievement vs expectations\n   - Growth trajectory assessment\n   - Market position within territory\n   - Competitive advantages/disadvantages\n\n3. **Risk Assessment**\n   - Partnership risk level (LOW/MEDIUM/HIGH/CRITICAL)\n   - Potential red flags or warning signs\n   - Contract renewal probability\n   - Competition threat analysis\n\n4. **Strategic Recommendations**\n   - Immediate action items\n   - Long-term partnership development\n   - Communication strategy adjustments\n   - Incentive and support recommendations\n\n5. **Growth Opportunities**\n   - Cross-selling potential\n   - Territory expansion possibilities\n   - New product introduction opportunities\n   - Partnership enhancement initiatives\n\nFormat as structured JSON with individual partner analysis and portfolio-level insights. Prioritize high-risk and high-opportunity partnerships for immediate attention.",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 4000
+        }
+      },
+      "id": "gemini-relationship-analysis",
+      "name": "🧠 Gemini Partnership Intelligence",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.3,
+      "position": [680, 400],
+      "notes": "🎯 Advanced partnership analysis\n📊 Relationship health scoring\n🎲 Strategic recommendations"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process AI partnership analysis and categorize by priority\nconst aiResponse = JSON.parse($input.first().json.choices[0].message.content);\n\nconst relationshipInsights = {\n  analysis_timestamp: new Date().toISOString(),\n  total_partners_analyzed: aiResponse.partners_analyzed || 0,\n  portfolio_health_score: aiResponse.portfolio_overall_health || 0,\n  partner_segmentation: {\n    champions: aiResponse.partner_analysis.filter(p => p.relationship_health_score >= 90),\n    high_performers: aiResponse.partner_analysis.filter(p => p.relationship_health_score >= 75 && p.relationship_health_score < 90),\n    steady_partners: aiResponse.partner_analysis.filter(p => p.relationship_health_score >= 60 && p.relationship_health_score < 75),\n    at_risk: aiResponse.partner_analysis.filter(p => p.relationship_health_score >= 40 && p.relationship_health_score < 60),\n    critical_attention: aiResponse.partner_analysis.filter(p => p.relationship_health_score < 40)\n  },\n  risk_assessment: {\n    critical_risks: aiResponse.partner_analysis.filter(p => p.risk_level === 'CRITICAL'),\n    high_risks: aiResponse.partner_analysis.filter(p => p.risk_level === 'HIGH'),\n    medium_risks: aiResponse.partner_analysis.filter(p => p.risk_level === 'MEDIUM'),\n    low_risks: aiResponse.partner_analysis.filter(p => p.risk_level === 'LOW')\n  },\n  opportunities: aiResponse.growth_opportunities || [],\n  immediate_actions: aiResponse.portfolio_recommendations?.immediate_actions || [],\n  strategic_initiatives: aiResponse.portfolio_recommendations?.strategic_initiatives || []\n};\n\n// Calculate portfolio metrics\nconst portfolioMetrics = {\n  total_partners: relationshipInsights.total_partners_analyzed,\n  healthy_partnerships: relationshipInsights.partner_segmentation.champions.length + relationshipInsights.partner_segmentation.high_performers.length,\n  at_risk_partnerships: relationshipInsights.partner_segmentation.at_risk.length + relationshipInsights.partner_segmentation.critical_attention.length,\n  health_distribution: {\n    excellent: ((relationshipInsights.partner_segmentation.champions.length / relationshipInsights.total_partners_analyzed) * 100).toFixed(1) + '%',\n    good: ((relationshipInsights.partner_segmentation.high_performers.length / relationshipInsights.total_partners_analyzed) * 100).toFixed(1) + '%',\n    fair: ((relationshipInsights.partner_segmentation.steady_partners.length / relationshipInsights.total_partners_analyzed) * 100).toFixed(1) + '%',\n    poor: ((relationshipInsights.partner_segmentation.at_risk.length / relationshipInsights.total_partners_analyzed) * 100).toFixed(1) + '%',\n    critical: ((relationshipInsights.partner_segmentation.critical_attention.length / relationshipInsights.total_partners_analyzed) * 100).toFixed(1) + '%'\n  }\n};\n\nrelationshipInsights.portfolio_metrics = portfolioMetrics;\n\n// Add priority levels to partners\nObject.values(relationshipInsights.partner_segmentation).forEach(segment => {\n  segment.forEach(partner => {\n    partner.last_assessed = new Date().toISOString();\n    partner.priority_level = \n      partner.relationship_health_score >= 90 ? 'MONITOR' :\n      partner.relationship_health_score >= 75 ? 'ENGAGE' :\n      partner.relationship_health_score >= 60 ? 'SUPPORT' :\n      partner.relationship_health_score >= 40 ? 'INTERVENE' : 'CRITICAL';\n  });\n});\n\nreturn [{json: relationshipInsights}];"
+      },
+      "id": "relationship-processor",
+      "name": "⚙️ Process Relationship Insights",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400],
+      "notes": "🛡️ Categorizes partners by health\n📊 Generates portfolio metrics\n🔄 Prepares actionable insights"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "relationship_assessments",
+        "columns": "assessment_timestamp, total_partners, portfolio_health_score, healthy_partners, at_risk_partners, critical_partners, assessment_data",
+        "additionalFields": {
+          "values": "={{$json.analysis_timestamp}}, {{$json.total_partners_analyzed}}, {{$json.portfolio_health_score}}, {{$json.portfolio_metrics.healthy_partnerships}}, {{$json.portfolio_metrics.at_risk_partnerships}}, {{$json.partner_segmentation.critical_attention.length}}, '{{JSON.stringify($json)}}'"
+        }
+      },
+      "id": "relationship-database",
+      "name": "💾 Store Relationship Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1120, 300],
+      "notes": "📈 Partnership health tracking\n📊 Historical relationship data\n🔍 Performance benchmarking"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C1234567890",
+          "mode": "list",
+          "cachedResultName": "partnership-alerts"
+        },
+        "text": "=🤝 **Partnership Health Assessment**\n\n**Portfolio Health Score:** {{$json.portfolio_health_score}}/100\n**Total Partners:** {{$json.total_partners_analyzed}}\n\n**Health Distribution:**\n• Excellent: {{$json.portfolio_metrics.health_distribution.excellent}}\n• Good: {{$json.portfolio_metrics.health_distribution.good}}\n• Fair: {{$json.portfolio_metrics.health_distribution.fair}}\n• Poor: {{$json.portfolio_metrics.health_distribution.poor}}\n• Critical: {{$json.portfolio_metrics.health_distribution.critical}}\n\n{{$json.risk_assessment.critical_risks.length > 0 ? '**🚨 Critical Partners Needing Attention:**\\n' + $json.risk_assessment.critical_risks.slice(0,3).map(p => `• ${p.partner_name} (${p.relationship_health_score}/100)`).join('\\n') : ''}}\n\n{{$json.opportunities.length > 0 ? '**💎 Top Growth Opportunities:**\\n' + $json.opportunities.slice(0,2).map(opp => `• ${opp.opportunity_type}: ${opp.description}`).join('\\n') : ''}}\n\n_Next assessment tomorrow_",
+        "otherOptions": {}
+      },
+      "id": "slack-portfolio-summary",
+      "name": "📱 Slack Portfolio Summary",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1120, 500],
+      "notes": "🔔 Partnership health summaries\n📈 Portfolio performance updates\n👥 Sales team notifications"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "critical-partners",
+              "leftValue": "={{$json.partner_segmentation.critical_attention.length}}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "critical-partners-filter",
+      "name": "🚨 Critical Partners Only",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1340, 400],
+      "notes": "Only processes critical partnership issues"
+    },
+    {
+      "parameters": {
+        "fromEmail": "partnerships@yourcompany.com",
+        "toEmail": "sales@yourcompany.com,executives@yourcompany.com",
+        "subject": "=🚨 CRITICAL: Partnership Health Alert - {{$json.partner_segmentation.critical_attention.length}} Partners Need Immediate Attention",
+        "text": "=URGENT PARTNERSHIP HEALTH ALERT\n\n{{$json.partner_segmentation.critical_attention.map(partner => `\n--- ${partner.partner_name} ---\nHealth Score: ${partner.relationship_health_score}/100\nRisk Level: ${partner.risk_level}\nKey Issues: ${partner.risk_factors?.join(', ') || 'Performance decline'}\nRecommended Actions: ${partner.immediate_actions?.join(', ') || 'Schedule urgent meeting'}\nContract Status: ${partner.contract_status || 'Active'}`).join('\\n')}}\n\nOVERALL PORTFOLIO STATUS:\n• Total Partners: {{$json.total_partners_analyzed}}\n• Healthy Partnerships: {{$json.portfolio_metrics.healthy_partnerships}}\n• At-Risk Partnerships: {{$json.portfolio_metrics.at_risk_partnerships}}\n• Portfolio Health Score: {{$json.portfolio_health_score}}/100\n\nIMMEDIATE ACTION REQUIRED FOR CRITICAL PARTNERS\n\nPlease review and assign action items within 24 hours.\n\nBest,\nPartnership Management Team",
+        "options": {}
+      },
+      "id": "critical-partner-alert",
+      "name": "🚨 Critical Partner Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1560, 400],
+      "notes": "🚨 Critical partnership alerts\n📧 Executive notifications\n👔 Crisis response activation"
+    },
+    {
+      "parameters": {
+        "fromEmail": "partnerships@yourcompany.com",
+        "toEmail": "partnermanager@yourcompany.com,salesops@yourcompany.com",
+        "subject": "=🤝 Weekly Partnership Performance Report - {{new Date().toLocaleDateString()}}",
+        "html": "=<h2>Partnership Performance Report</h2>\n\n<h3>Portfolio Overview</h3>\n<ul>\n<li><strong>Portfolio Health Score:</strong> {{$json.portfolio_health_score}}/100</li>\n<li><strong>Total Active Partners:</strong> {{$json.total_partners_analyzed}}</li>\n<li><strong>Healthy Partnerships:</strong> {{$json.portfolio_metrics.healthy_partnerships}}</li>\n<li><strong>At-Risk Partnerships:</strong> {{$json.portfolio_metrics.at_risk_partnerships}}</li>\n</ul>\n\n<h3>Partnership Health Distribution</h3>\n<table border=\"1\" style=\"border-collapse: collapse;\">\n<tr><th>Health Level</th><th>Percentage</th><th>Count</th></tr>\n<tr><td>Excellent (90-100)</td><td>{{$json.portfolio_metrics.health_distribution.excellent}}</td><td>{{$json.partner_segmentation.champions.length}}</td></tr>\n<tr><td>Good (75-89)</td><td>{{$json.portfolio_metrics.health_distribution.good}}</td><td>{{$json.partner_segmentation.high_performers.length}}</td></tr>\n<tr><td>Fair (60-74)</td><td>{{$json.portfolio_metrics.health_distribution.fair}}</td><td>{{$json.partner_segmentation.steady_partners.length}}</td></tr>\n<tr><td>Poor (40-59)</td><td>{{$json.portfolio_metrics.health_distribution.poor}}</td><td>{{$json.partner_segmentation.at_risk.length}}</td></tr>\n<tr><td>Critical (0-39)</td><td>{{$json.portfolio_metrics.health_distribution.critical}}</td><td>{{$json.partner_segmentation.critical_attention.length}}</td></tr>\n</table>\n\n<h3>Top Growth Opportunities</h3>\n{{$json.opportunities.slice(0,5).map(opp => `<p><strong>${opp.opportunity_type}:</strong> ${opp.description}</p><p><em>Potential Impact: ${opp.potential_impact}</em></p>`).join('')}}\n\n<h3>Strategic Recommendations</h3>\n<ul>\n{{$json.immediate_actions.map(action => `<li>${action}</li>`).join('')}}\n</ul>\n\n<h3>Critical Partners (Immediate Attention Required)</h3>\n{{$json.partner_segmentation.critical_attention.slice(0,3).map(partner => `<div style=\"border:1px solid #ff0000; padding:10px; margin:10px 0; background-color:#ffe6e6;\">\n<h4>${partner.partner_name}</h4>\n<p><strong>Health Score:</strong> ${partner.relationship_health_score}/100</p>\n<p><strong>Risk Level:</strong> ${partner.risk_level}</p>\n<p><strong>Key Issues:</strong> ${partner.risk_factors?.join(', ') || 'Performance concerns'}</p>\n<p><strong>Recommended Actions:</strong> ${partner.immediate_actions?.join(', ') || 'Schedule intervention meeting'}</p>\n</div>`).join('')}}\n\n<p><em>Report generated by AI Distributor/Retailer Relationship Agent</em></p>",
+        "options": {}
+      },
+      "id": "weekly-partnership-report",
+      "name": "📧 Weekly Partnership Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1780, 400],
+      "notes": "📧 Comprehensive partnership reports\n📊 Executive-level insights\n👔 Strategic planning support"
+    }
+  ],
+  "connections": {
+    "⏰ Daily Relationship Assessment": {
+      "main": [
+        [
+          {
+            "node": "💼 Partner Database Query",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📊 Sales Performance Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "💬 Communication History",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📝 Partner Feedback & Surveys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💼 Partner Database Query": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Partnership Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Sales Performance Data": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Partnership Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💬 Communication History": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Partnership Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Partner Feedback & Surveys": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Partnership Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 AI Partnership Intelligence": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Process Relationship Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Process Relationship Insights": {
+      "main": [
+        [
+          {
+            "node": "💾 Store Relationship Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📱 Slack Portfolio Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🚨 Critical Partners Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🚨 Critical Partners Only": {
+      "main": [
+        [
+          {
+            "node": "🚨 Critical Partner Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📧 Weekly Partnership Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "partnership-management",
+      "name": "Partnership Management"
+    },
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "relationship-intelligence",
+      "name": "Relationship Intelligence"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-30T10:00:00.000Z",
+  "versionId": "1.0.0"
+}

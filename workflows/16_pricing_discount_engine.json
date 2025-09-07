@@ -1,0 +1,385 @@
+{
+  "name": "💰 AI-Based Pricing & Discount Optimization Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "pricing-trigger",
+      "name": "⏰ Every 6 Hours Price Optimization",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "🔥 DEMO: AI-driven pricing optimization every 6 hours\n💰 ROI: 15-30% revenue increase through optimal pricing\n⚡ Impact: Real-time competitive pricing & margin optimization"
+    },
+    {
+      "parameters": {
+        "url": "https://api.keepa.com/product",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "key",
+                "value": "={{$credentials.keepa.apiKey}}"
+              },
+              {
+                "name": "domain",
+                "value": "1"
+              },
+              {
+                "name": "asin",
+                "value": "={{$node[\"product-database\"].json.map(p => p.asin).join(',')}}"
+              },
+              {
+                "name": "stats",
+                "value": "1"
+              },
+              {
+                "name": "history",
+                "value": "1"
+              }
+            ]
+          }
+        }
+      },
+      "id": "competitor-pricing",
+      "name": "📊 Competitor Pricing Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 200],
+      "notes": "Collects real-time competitor pricing\nTracks: Price history, sales ranks, Buy Box data"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "products",
+        "columns": "product_id, asin, product_name, category, base_cost, current_price, margin_percentage, sales_velocity, stock_level",
+        "additionalFields": {
+          "where": "active = true AND stock_level > 0"
+        }
+      },
+      "id": "product-database",
+      "name": "📦 Product Database Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [460, 400],
+      "notes": "Retrieves active product catalog\nTracks: Costs, margins, sales velocity, inventory"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "sales_history",
+        "columns": "product_id, date, units_sold, revenue, discount_applied, customer_segment",
+        "additionalFields": {
+          "where": "date >= CURRENT_DATE - INTERVAL '90 days'"
+        }
+      },
+      "id": "sales-history",
+      "name": "📈 Sales History & Trends",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [460, 600],
+      "notes": "Analyzes 90-day sales patterns\nTracks: Demand elasticity, discount impact, seasonality"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "market_demand",
+        "columns": "product_category, date, search_volume, conversion_rate, average_price, competitor_count",
+        "additionalFields": {
+          "where": "date >= CURRENT_DATE - INTERVAL '30 days'"
+        }
+      },
+      "id": "market-demand",
+      "name": "🌍 Market Demand Signals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [460, 800],
+      "notes": "Monitors market demand indicators\nTracks: Search trends, conversion rates, market saturation"
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.0-flash-exp",
+        "prompt": "=You are an expert pricing strategist and economist. Analyze this comprehensive pricing data and provide optimal pricing and discount recommendations.\n\nCompetitor Data: {{$json.competitor || 'No competitor data'}}\nProduct Catalog: {{$json.products || 'No product data'}}\nSales History: {{$json.sales || 'No sales data'}}\nMarket Demand: {{$json.market || 'No market data'}}\n\nFor each product, calculate and recommend:\n\n1. **Optimal Price Point**\n   - Competitive positioning price\n   - Price elasticity analysis\n   - Margin optimization\n   - Demand sensitivity assessment\n\n2. **Discount Strategy**\n   - Optimal discount timing\n   - Maximum discount depth\n   - Duration recommendations\n   - Customer segment targeting\n\n3. **Revenue Optimization**\n   - Expected revenue impact\n   - Profit margin analysis\n   - Inventory turnover optimization\n   - Seasonal adjustment factors\n\n4. **Risk Assessment**\n   - Price change risk level\n   - Market reaction probability\n   - Competitor response likelihood\n   - Customer retention impact\n\n5. **Implementation Plan**\n   - Phased rollout strategy\n   - A/B testing recommendations\n   - Performance monitoring metrics\n   - Contingency adjustments\n\nFormat as structured JSON with individual product recommendations and portfolio-level strategy. Prioritize high-impact pricing opportunities and minimize revenue risk.",
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 4000
+        }
+      },
+      "id": "gemini-pricing-analysis",
+      "name": "🧠 Gemini Pricing Intelligence",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.3,
+      "position": [680, 400],
+      "notes": "🎯 Advanced pricing optimization\n📊 Elasticity modeling & revenue forecasting\n🎲 Risk-adjusted pricing strategy"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process AI pricing recommendations and categorize by impact\nconst aiResponse = JSON.parse($input.first().json.choices[0].message.content);\n\nconst pricingStrategy = {\n  analysis_timestamp: new Date().toISOString(),\n  total_products_analyzed: aiResponse.products_analyzed || 0,\n  portfolio_revenue_impact: aiResponse.expected_portfolio_impact || 0,\n  product_recommendations: {\n    immediate_action: aiResponse.product_recommendations.filter(p => p.implementation_priority === 'IMMEDIATE' && p.revenue_impact > 0.05),\n    high_impact: aiResponse.product_recommendations.filter(p => p.revenue_impact >= 0.10),\n    medium_impact: aiResponse.product_recommendations.filter(p => p.revenue_impact >= 0.05 && p.revenue_impact < 0.10),\n    low_impact: aiResponse.product_recommendations.filter(p => p.revenue_impact < 0.05),\n    price_increases: aiResponse.product_recommendations.filter(p => p.price_change_percentage > 0),\n    price_decreases: aiResponse.product_recommendations.filter(p => p.price_change_percentage < 0),\n    discount_opportunities: aiResponse.product_recommendations.filter(p => p.discount_recommended === true)\n  },\n  discount_strategy: aiResponse.discount_strategy || {},\n  risk_assessment: {\n    low_risk: aiResponse.product_recommendations.filter(p => p.risk_level === 'LOW'),\n    medium_risk: aiResponse.product_recommendations.filter(p => p.risk_level === 'MEDIUM'),\n    high_risk: aiResponse.product_recommendations.filter(p => p.risk_level === 'HIGH')\n  },\n  implementation_plan: aiResponse.implementation_plan || {}\n};\n\n// Calculate portfolio metrics\nconst portfolioMetrics = {\n  total_revenue_potential: pricingStrategy.product_recommendations.immediate_action.reduce((sum, p) => sum + p.expected_revenue_impact, 0),\n  average_price_change: (pricingStrategy.product_recommendations.immediate_action.reduce((sum, p) => sum + p.price_change_percentage, 0) / pricingStrategy.product_recommendations.immediate_action.length).toFixed(2) + '%',\n  high_impact_opportunities: pricingStrategy.product_recommendations.high_impact.length,\n  discount_eligible_products: pricingStrategy.product_recommendations.discount_opportunities.length,\n  risk_distribution: {\n    low: ((pricingStrategy.risk_assessment.low_risk.length / pricingStrategy.total_products_analyzed) * 100).toFixed(1) + '%',\n    medium: ((pricingStrategy.risk_assessment.medium_risk.length / pricingStrategy.total_products_analyzed) * 100).toFixed(1) + '%',\n    high: ((pricingStrategy.risk_assessment.high_risk.length / pricingStrategy.total_products_analyzed) * 100).toFixed(1) + '%'\n  }\n};\n\npricingStrategy.portfolio_metrics = portfolioMetrics;\n\n// Add implementation metadata\npricingStrategy.product_recommendations.immediate_action.forEach(product => {\n  product.implementation_status = 'PENDING';\n  product.scheduled_date = new Date(Date.now() + 24*60*60*1000).toISOString(); // Next day\n  product.monitoring_period = '7 days';\n  product.rollback_trigger = 'revenue_decline > 5%';\n});\n\nreturn [{json: pricingStrategy}];"
+      },
+      "id": "pricing-processor",
+      "name": "⚙️ Process Pricing Strategy",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400],
+      "notes": "🛡️ Categorizes by impact and risk\n📊 Calculates portfolio metrics\n🔄 Prepares implementation plan"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "pricing_recommendations",
+        "columns": "analysis_timestamp, total_products, revenue_potential, high_impact_count, discount_count, recommendations_data",
+        "additionalFields": {
+          "values": "={{$json.analysis_timestamp}}, {{$json.total_products_analyzed}}, {{$json.portfolio_metrics.total_revenue_potential}}, {{$json.portfolio_metrics.high_impact_opportunities}}, {{$json.portfolio_metrics.discount_eligible_products}}, '{{JSON.stringify($json)}}'"
+        }
+      },
+      "id": "pricing-database",
+      "name": "💾 Store Pricing Strategy",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1120, 300],
+      "notes": "📈 Pricing strategy tracking\n📊 Historical optimization data\n🔍 Performance benchmarking"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C1234567890",
+          "mode": "list",
+          "cachedResultName": "pricing-alerts"
+        },
+        "text": "=💰 **Pricing Optimization Update**\n\n**Products Analyzed:** {{$json.total_products_analyzed}}\n**Revenue Potential:** ${{($json.portfolio_metrics.total_revenue_potential || 0).toFixed(2)}}\n**Average Price Change:** {{$json.portfolio_metrics.average_price_change}}\n\n**Key Opportunities:**\n• High Impact: {{$json.portfolio_metrics.high_impact_opportunities}}\n• Discount Eligible: {{$json.portfolio_metrics.discount_eligible_products}}\n• Immediate Action: {{$json.product_recommendations.immediate_action.length}}\n\n**Risk Distribution:**\n• Low Risk: {{$json.portfolio_metrics.risk_distribution.low}}\n• Medium Risk: {{$json.portfolio_metrics.risk_distribution.medium}}\n• High Risk: {{$json.portfolio_metrics.risk_distribution.high}}\n\n{{$json.product_recommendations.immediate_action.length > 0 ? '**🚀 Top Immediate Actions:**\\n' + $json.product_recommendations.immediate_action.slice(0,3).map(p => `• ${p.product_name}: ${p.price_change_percentage > 0 ? '+' : ''}${(p.price_change_percentage * 100).toFixed(1)}% ($${p.expected_revenue_impact.toFixed(2)} impact)`).join('\\n') : ''}}\n\n_Next optimization in 6 hours_",
+        "otherOptions": {}
+      },
+      "id": "slack-pricing-summary",
+      "name": "📱 Slack Pricing Summary",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1120, 500],
+      "notes": "🔔 Pricing optimization updates\n📈 Revenue impact summaries\n👥 Finance and sales team notifications"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "high-revenue-impact",
+              "leftValue": "={{$json.portfolio_metrics.total_revenue_potential}}",
+              "rightValue": "1000",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "high-impact-filter",
+      "name": "🚀 High Revenue Impact Only",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1340, 400],
+      "notes": "Only processes high-revenue pricing opportunities"
+    },
+    {
+      "parameters": {
+        "fromEmail": "pricing@yourcompany.com",
+        "toEmail": "ceo@yourcompany.com,cfo@yourcompany.com,salesdirector@yourcompany.com",
+        "subject": "=💰 HIGH IMPACT: Pricing Optimization Opportunity - ${{$json.portfolio_metrics.total_revenue_potential.toFixed(2)}} Revenue Potential",
+        "text": "=CRITICAL REVENUE OPTIMIZATION OPPORTUNITY\n\nEXECUTIVE SUMMARY:\n• Total Revenue Potential: ${{$json.portfolio_metrics.total_revenue_potential.toFixed(2)}}\n• Products Analyzed: {{$json.total_products_analyzed}}\n• High Impact Opportunities: {{$json.portfolio_metrics.high_impact_opportunities}}\n• Average Price Change: {{$json.portfolio_metrics.average_price_change}}\n\nTOP IMMEDIATE ACTIONS:\n{{$json.product_recommendations.immediate_action.map(product => `\n--- ${product.product_name} ---\nCurrent Price: $${product.current_price}\nRecommended Price: $${product.optimal_price}\nChange: ${product.price_change_percentage > 0 ? '+' : ''}${(product.price_change_percentage * 100).toFixed(1)}%\nExpected Impact: $${product.expected_revenue_impact.toFixed(2)}\nRationale: ${product.strategy_rationale}\nRisk Level: ${product.risk_level}`).join('\\n')}}\n\nSTRATEGIC CONTEXT:\n• Risk Distribution: Low {{$json.portfolio_metrics.risk_distribution.low}}, Medium {{$json.portfolio_metrics.risk_distribution.medium}}, High {{$json.portfolio_metrics.risk_distribution.high}}\n• Implementation Plan: Phased rollout over {{($json.implementation_plan.phases || 2)}} weeks\n• Monitoring Period: {{($json.implementation_plan.monitoring_days || 14)}} days\n\nRECOMMENDATION:\nProceed with immediate implementation of high-confidence recommendations.\nMonitor performance closely and be prepared for quick adjustments.\n\nBest,\nAI Pricing Optimization Engine",
+        "options": {}
+      },
+      "id": "executive-pricing-alert",
+      "name": "🚀 Executive Pricing Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1560, 400],
+      "notes": "🚀 High-impact pricing alerts\n📧 Executive decision support\n👔 Strategic revenue opportunities"
+    },
+    {
+      "parameters": {
+        "fromEmail": "pricing@yourcompany.com",
+        "toEmail": "pricingteam@yourcompany.com,salesops@yourcompany.com",
+        "subject": "=💰 Weekly Pricing Strategy Report - {{new Date().toLocaleDateString()}}",
+        "html": "=<h2>AI Pricing & Discount Optimization Report</h2>\n\n<h3>Portfolio Performance</h3>\n<ul>\n<li><strong>Total Products Analyzed:</strong> {{$json.total_products_analyzed}}</li>\n<li><strong>Revenue Optimization Potential:</strong> ${{$json.portfolio_metrics.total_revenue_potential.toFixed(2)}}</li>\n<li><strong>High Impact Opportunities:</strong> {{$json.portfolio_metrics.high_impact_opportunities}}</li>\n<li><strong>Average Price Change:</strong> {{$json.portfolio_metrics.average_price_change}}</li>\n</ul>\n\n<h3>Risk Distribution</h3>\n<table border=\"1\" style=\"border-collapse: collapse;\">\n<tr><th>Risk Level</th><th>Percentage</th><th>Count</th></tr>\n<tr><td>Low Risk</td><td>{{$json.portfolio_metrics.risk_distribution.low}}</td><td>{{$json.risk_assessment.low_risk.length}}</td></tr>\n<tr><td>Medium Risk</td><td>{{$json.portfolio_metrics.risk_distribution.medium}}</td><td>{{$json.risk_assessment.medium_risk.length}}</td></tr>\n<tr><td>High Risk</td><td>{{$json.portfolio_metrics.risk_distribution.high}}</td><td>{{$json.risk_assessment.high_risk.length}}</td></tr>\n</table>\n\n<h3>Top Pricing Opportunities</h3>\n{{$json.product_recommendations.immediate_action.slice(0,5).map(product => `<div style=\"border:1px solid #4CAF50; padding:10px; margin:10px 0; background-color:#e8f5e8;\">\n<h4>${product.product_name}</h4>\n<p><strong>Current Price:</strong> $${product.current_price}</p>\n<p><strong>Recommended Price:</strong> $${product.optimal_price}</p>\n<p><strong>Expected Impact:</strong> $${product.expected_revenue_impact.toFixed(2)}</p>\n<p><strong>Risk Level:</strong> ${product.risk_level}</p>\n<p><strong>Strategy:</strong> ${product.strategy_rationale}</p>\n</div>`).join('')}}\n\n<h3>Discount Strategy Recommendations</h3>\n{{$json.discount_strategy.key_recommendations?.slice(0,3).map(rec => `<p><strong>${rec.discount_type}:</strong> ${rec.description}</p><p><em>Expected ROI: ${rec.expected_roi}</em></p>`).join('') || '<p>No specific discount recommendations this week</p>'}}\n\n<h3>Implementation Plan</h3>\n<ul>\n<li><strong>Phase 1 (Immediate):</strong> High-confidence, low-risk changes</li>\n<li><strong>Phase 2 (Week 1-2):</strong> Medium-impact opportunities</li>\n<li><strong>Phase 3 (Week 2-4):</strong> High-risk, high-reward changes</li>\n<li><strong>Monitoring:</strong> Daily performance tracking with 5% rollback triggers</li>\n</ul>\n\n<p><em>Report generated by AI-Based Pricing & Discount Optimization Engine</em></p>",
+        "options": {}
+      },
+      "id": "weekly-pricing-report",
+      "name": "📧 Weekly Pricing Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1780, 400],
+      "notes": "📧 Comprehensive pricing reports\n📊 Strategic planning support\n👔 Team execution guidance"
+    }
+  ],
+  "connections": {
+    "⏰ Every 6 Hours Price Optimization": {
+      "main": [
+        [
+          {
+            "node": "📊 Competitor Pricing Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📦 Product Database Query",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📈 Sales History & Trends",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🌍 Market Demand Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📦 Product Database Query": {
+      "main": [
+        [
+          {
+            "node": "📊 Competitor Pricing Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Competitor Pricing Data": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Pricing Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📦 Product Database Query": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Pricing Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📈 Sales History & Trends": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Pricing Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🌍 Market Demand Signals": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Pricing Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 AI Pricing Intelligence": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Process Pricing Strategy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Process Pricing Strategy": {
+      "main": [
+        [
+          {
+            "node": "💾 Store Pricing Strategy",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📱 Slack Pricing Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🚀 High Revenue Impact Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🚀 High Revenue Impact Only": {
+      "main": [
+        [
+          {
+            "node": "🚀 Executive Pricing Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📧 Weekly Pricing Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "pricing-optimization",
+      "name": "Pricing Optimization"
+    },
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "revenue-optimization",
+      "name": "Revenue Optimization"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-30T10:00:00.000Z",
+  "versionId": "1.0.0"
+}

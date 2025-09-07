@@ -60,7 +60,7 @@
     },
     {
       "parameters": {
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "gemini-2.0-flash-exp",
         "prompt": "=You are an expert customer retention analyst. Analyze customer behavior patterns to predict churn risk and recommend prevention strategies.\n\nCustomer Data: {{$node[\"customer-behavior\"].json}}\nSupport History: {{$node[\"support-data\"].json}}\nEmail Engagement: {{$node[\"engagement-data\"].json}}\n\nAnalyze churn indicators:\n\n1. **Behavioral Signals**:\n   - Purchase frequency decline\n   - Order value changes\n   - Days since last purchase\n   - Seasonal buying patterns\n   - Product category shifts\n\n2. **Engagement Signals**:\n   - Email engagement drop\n   - Website visit frequency\n   - Support ticket patterns\n   - Social media interactions\n\n3. **Satisfaction Indicators**:\n   - Support satisfaction scores\n   - Review sentiment\n   - Return/refund patterns\n   - Complaint escalations\n\n4. **Risk Segmentation**:\n   - High Risk (90 days): Likely to churn soon\n   - Medium Risk (60 days): Warning signs present\n   - Low Risk: Stable but monitor\n   - At Risk VIP: High-value customers showing decline\n\nFor each customer, provide:\n- Churn probability score (0-100)\n- Risk level and timeline\n- Key churn indicators\n- Recommended retention actions\n- Personalized win-back strategy\n- Expected CLV at risk\n\nReturn detailed JSON with risk scores, retention recommendations, and prioritized action plans.",
         "options": {
           "temperature": 0.2,

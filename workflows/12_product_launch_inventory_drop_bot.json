@@ -1,0 +1,402 @@
+{
+  "name": "🚀 Product Launch & Inventory Drop Notification Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "monitor-trigger",
+      "name": "⏰ Every 15 Minutes Monitor",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "🔥 DEMO: Monitors launches & inventory every 15 minutes\n💰 ROI: Early mover advantage, stock opportunities\n⚡ Impact: Real-time market intelligence"
+    },
+    {
+      "parameters": {
+        "url": "https://api.twitter.com/2/tweets/search/recent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "twitterOAuth2Api",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "query",
+                "value": "(product launch OR new product OR launching today OR inventory drop OR stock shortage OR sold out) -is:retweet lang:en"
+              },
+              {
+                "name": "max_results",
+                "value": "100"
+              },
+              {
+                "name": "tweet.fields",
+                "value": "created_at,author_id,text,public_metrics,entities"
+              },
+              {
+                "name": "user.fields",
+                "value": "username,name,verified"
+              }
+            ]
+          }
+        }
+      },
+      "id": "twitter-monitor",
+      "name": "🐦 Twitter Launch Monitor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 200],
+      "notes": "Monitors Twitter for product launch announcements\nTracks: Launch tweets, inventory alerts, trending products"
+    },
+    {
+      "parameters": {
+        "url": "https://api.keepa.com/product",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "key",
+                "value": "={{$credentials.keepa.apiKey}}"
+              },
+              {
+                "name": "domain",
+                "value": "1"
+              },
+              {
+                "name": "asin",
+                "value": "B08N5WRWNW,B07FZ8S74R,B08GKJN5TX,B08N6Q3X8S,B08N5KWB9H"
+              },
+              {
+                "name": "history",
+                "value": "1"
+              },
+              {
+                "name": "stats",
+                "value": "1"
+              }
+            ]
+          }
+        }
+      },
+      "id": "keepa-inventory-monitor",
+      "name": "📦 Amazon Inventory Monitor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 400],
+      "notes": "Monitors Amazon inventory levels\nDetects: Stock drops, out-of-stock alerts, availability changes"
+    },
+    {
+      "parameters": {
+        "url": "https://newsapi.org/v2/everything",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "q",
+                "value": "\"product launch\" OR \"new product release\" OR \"inventory shortage\" OR \"supply chain disruption\""
+              },
+              {
+                "name": "language",
+                "value": "en"
+              },
+              {
+                "name": "sortBy",
+                "value": "publishedAt"
+              },
+              {
+                "name": "pageSize",
+                "value": "50"
+              },
+              {
+                "name": "apiKey",
+                "value": "={{$credentials.newsApi.apiKey}}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "news-api-monitor",
+      "name": "📰 News Launch Monitor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 600],
+      "notes": "Monitors news sources for product launches\nTracks: Press releases, industry announcements, competitor moves"
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.0-flash-exp",
+        "prompt": "=You are an expert market intelligence analyst. Analyze these data sources for significant product launches and inventory drops.\n\nTwitter Data: {{$json.twitter || 'No Twitter data'}}\nAmazon Inventory Data: {{$json.amazon || 'No Amazon data'}}\nNews Data: {{$json.news || 'No news data'}}\n\nFor each significant finding, provide:\n1. Event Type (LAUNCH/DROP/STOCKOUT)\n2. Product Name/Description\n3. Company/Brand\n4. Market Impact (HIGH/MEDIUM/LOW)\n5. Urgency Level (CRITICAL/HIGH/MEDIUM/LOW)\n6. Key Details and Context\n7. Recommended Actions\n\nFormat as JSON array with these fields. Only include truly significant events that warrant immediate attention. Focus on high-impact launches and critical inventory shortages.",
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 3000
+        }
+      },
+      "id": "gemini-analysis",
+      "name": "🧠 Gemini Market Intelligence",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.3,
+      "position": [680, 400],
+      "notes": "🎯 AI analyzes all data sources\n📊 Identifies significant events\n🎲 Prioritizes by impact and urgency"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate and deduplicate findings from AI analysis\nconst aiResponse = JSON.parse($input.first().json.choices[0].message.content);\n\n// Remove duplicates and filter low-impact events\nconst significantEvents = aiResponse.filter(event => \n  event.market_impact !== 'LOW' && \n  event.urgency_level !== 'LOW'\n);\n\n// Add metadata and timestamps\nsignificantEvents.forEach(event => {\n  event.detected_at = new Date().toISOString();\n  event.source = 'AI_Analysis';\n  event.notification_priority = \n    event.urgency_level === 'CRITICAL' ? 'IMMEDIATE' :\n    event.market_impact === 'HIGH' ? 'HIGH' : 'MEDIUM';\n});\n\n// Group by event type for different handling\nconst grouped = {\n  launches: significantEvents.filter(e => e.event_type === 'LAUNCH'),\n  drops: significantEvents.filter(e => e.event_type === 'DROP'),\n  stockouts: significantEvents.filter(e => e.event_type === 'STOCKOUT')\n};\n\nreturn Object.entries(grouped).map(([type, events]) => ({\n  json: { \n    event_category: type, \n    events: events, \n    count: events.length,\n    timestamp: new Date().toISOString()\n  }\n})).filter(item => item.json.count > 0);"
+      },
+      "id": "event-processor",
+      "name": "⚙️ Process & Categorize Events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400],
+      "notes": "🛡️ Filters significant events\n📊 Categorizes by type and priority\n🔄 Deduplicates and adds metadata"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-significant-events",
+              "leftValue": "={{$json.count}}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "significance-filter",
+      "name": "🎯 Significant Events Only",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1120, 400],
+      "notes": "Only processes events that passed significance threshold"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "market_events",
+        "columns": "event_category, event_count, events_data, detected_at, processed_at",
+        "additionalFields": {
+          "values": "={{$json.event_category}}, {{$json.count}}, '{{JSON.stringify($json.events)}}', '{{$json.timestamp}}', NOW()"
+        }
+      },
+      "id": "database-logger",
+      "name": "💾 Log Market Events",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1340, 300],
+      "notes": "📈 Stores all market intelligence\n📊 Historical tracking and analytics\n🔍 Audit trail for decisions"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C1234567890",
+          "mode": "list",
+          "cachedResultName": "market-alerts"
+        },
+        "text": "=🚨 **URGENT: Market Intelligence Alert**\n\n**{{$json.event_category.toUpperCase()}} Events Detected**\n\n{{$json.events.map(event => `🔥 **${event.product_name || event.company}**\n• Type: ${event.event_type}\n• Impact: ${event.market_impact}\n• Urgency: ${event.urgency_level}\n• Details: ${event.key_details}\n• Action: ${event.recommended_actions}\n`).join('\\n\\n')}}\n\n⏰ *Detected: {{new Date($json.timestamp).toLocaleString()}}*\n📊 *Total Events: {{$json.count}}*\n\n⚡ _Immediate action recommended for critical events_",
+        "otherOptions": {}
+      },
+      "id": "slack-critical-alert",
+      "name": "🚨 Slack Critical Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1340, 500],
+      "notes": "🔔 Immediate critical alerts\n📈 Real-time market intelligence\n👥 Team mobilization notifications"
+    },
+    {
+      "parameters": {
+        "fromEmail": "market-alerts@yourcompany.com",
+        "toEmail": "team@yourcompany.com,executives@yourcompany.com",
+        "subject": "=🚀 {{$json.event_category.toUpperCase()}} Alert - {{$json.count}} Events Detected",
+        "text": "=URGENT MARKET INTELLIGENCE ALERT\n\nEvent Category: {{$json.event_category.toUpperCase()}}\nTotal Events: {{$json.count}}\nDetected At: {{new Date($json.timestamp).toLocaleString()}}\n\nDETAILED EVENTS:\n{{$json.events.map(event => `\n--- ${event.product_name || event.company} ---\nType: ${event.event_type}\nImpact: ${event.market_impact}\nUrgency: ${event.urgency_level}\nDetails: ${event.key_details}\nRecommended Action: ${event.recommended_actions}`).join('\\n')}}\n\nThis alert was automatically generated by the Product Launch & Inventory Drop Notification Bot.\nPlease review and take appropriate action.\n\nBest,\nMarket Intelligence Team",
+        "options": {}
+      },
+      "id": "email-alert",
+      "name": "📧 Email Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1560, 400],
+      "notes": "📧 Formal email notifications\n📋 Detailed event summaries\n👔 Executive and team alerts"
+    },
+    {
+      "parameters": {
+        "url": "https://api.telegram.org/bot{{$credentials.telegram.botToken}}/sendMessage",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{$credentials.telegram.chatId}}"
+            },
+            {
+              "name": "text",
+              "value": "=🚨 **{{$json.event_category.toUpperCase()}} ALERT**\n\n{{$json.events.slice(0,3).map(event => `• **${event.product_name || event.company}**\n  ${event.event_type} - ${event.market_impact} Impact`).join('\\n\\n')}}\n\n📊 {{$json.count}} total events\n⏰ {{new Date($json.timestamp).toLocaleString()}}"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            }
+          ]
+        }
+      },
+      "id": "telegram-alert",
+      "name": "📱 Telegram Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 600],
+      "notes": "📱 Mobile push notifications\n🚀 Quick alerts for on-the-go teams\n⚡ Instant market intelligence"
+    }
+  ],
+  "connections": {
+    "⏰ Every 15 Minutes Monitor": {
+      "main": [
+        [
+          {
+            "node": "🐦 Twitter Launch Monitor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📦 Amazon Inventory Monitor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📰 News Launch Monitor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🐦 Twitter Launch Monitor": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Market Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📦 Amazon Inventory Monitor": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Market Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📰 News Launch Monitor": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Market Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 AI Market Intelligence": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Process & Categorize Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Process & Categorize Events": {
+      "main": [
+        [
+          {
+            "node": "🎯 Significant Events Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎯 Significant Events Only": {
+      "main": [
+        [
+          {
+            "node": "💾 Log Market Events",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🚨 Slack Critical Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🚨 Slack Critical Alert": {
+      "main": [
+        [
+          {
+            "node": "📧 Email Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📱 Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "market-intelligence",
+      "name": "Market Intelligence"
+    },
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "real-time-alerts",
+      "name": "Real-time Alerts"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-30T10:00:00.000Z",
+  "versionId": "1.0.0"
+}

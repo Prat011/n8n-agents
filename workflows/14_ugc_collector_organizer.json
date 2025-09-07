@@ -1,0 +1,417 @@
+{
+  "name": "📸 UGC Collector & Organizer Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "ugc-trigger",
+      "name": "⏰ Every 2 Hours UGC Collection",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "🔥 DEMO: Automated UGC collection every 2 hours\n💰 ROI: 40-60% increase in authentic content\n⚡ Impact: Brand storytelling & social proof"
+    },
+    {
+      "parameters": {
+        "url": "https://graph.instagram.com/me/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "instagramBasicDisplayApi",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "fields",
+                "value": "id,media_type,media_url,permalink,caption,timestamp,like_count,comments_count,username"
+              },
+              {
+                "name": "access_token",
+                "value": "={{$credentials.instagram.accessToken}}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "instagram-collector",
+      "name": "📷 Instagram UGC Collector",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 200],
+      "notes": "Collects user-generated content from Instagram\nTracks: Posts, stories, reels with brand mentions"
+    },
+    {
+      "parameters": {
+        "url": "https://api.twitter.com/2/tweets/search/recent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "twitterOAuth2Api",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "query",
+                "value": "(@yourbrand OR #yourbrand OR yourbrand) -is:retweet filter:media"
+              },
+              {
+                "name": "max_results",
+                "value": "100"
+              },
+              {
+                "name": "tweet.fields",
+                "value": "created_at,author_id,text,public_metrics,entities,attachments"
+              },
+              {
+                "name": "expansions",
+                "value": "author_id,attachments.media_keys"
+              },
+              {
+                "name": "media.fields",
+                "value": "url,type,preview_image_url"
+              }
+            ]
+          }
+        }
+      },
+      "id": "twitter-collector",
+      "name": "🐦 Twitter UGC Collector",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 400],
+      "notes": "Collects tweets with brand mentions and media\nTracks: User posts, reviews, photos, videos"
+    },
+    {
+      "parameters": {
+        "url": "https://api.tiktok.com/open_api/v1.3/research/video/query/",
+        "method": "POST",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "tikTokResearchApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "{\"and\": [{\"operation\": \"IN\", \"field_name\": \"hashtag_name\", \"field_values\": [\"yourbrand\", \"yourbrandreview\"]}]}"
+            },
+            {
+              "name": "max_count",
+              "value": "100"
+            },
+            {
+              "name": "cursor",
+              "value": "0"
+            }
+          ]
+        }
+      },
+      "id": "tiktok-collector",
+      "name": "🎵 TikTok UGC Collector",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 600],
+      "notes": "Collects TikTok videos with brand mentions\nTracks: User-created content, challenges, reviews"
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/details/json",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "place_id",
+                "value": "={{$credentials.googlePlaces.placeId}}"
+              },
+              {
+                "name": "fields",
+                "value": "reviews"
+              },
+              {
+                "name": "key",
+                "value": "={{$credentials.googlePlaces.apiKey}}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "google-reviews-collector",
+      "name": "⭐ Google Reviews Collector",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 800],
+      "notes": "Collects Google Business Profile reviews\nTracks: Customer reviews, ratings, photos"
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.0-flash-exp",
+        "prompt": "=You are an expert UGC curator and content strategist. Analyze this collected user-generated content and provide curation insights.\n\nInstagram Content: {{$json.instagram || 'No Instagram data'}}\nTwitter Content: {{$json.twitter || 'No Twitter data'}}\nTikTok Content: {{$json.tiktok || 'No TikTok data'}}\nGoogle Reviews: {{$json.google || 'No Google reviews'}}\n\nFor each piece of content, analyze and classify:\n\n1. **Content Quality Assessment**\n   - Visual quality (HIGH/MEDIUM/LOW)\n   - Relevance to brand (HIGH/MEDIUM/LOW)\n   - Engagement potential (HIGH/MEDIUM/LOW)\n   - Authenticity score (1-10)\n\n2. **Content Categorization**\n   - Content type (photo/video/review/mention/story)\n   - Theme tags (product usage, customer experience, unboxing, etc.)\n   - Sentiment (positive/negative/neutral)\n   - Brand alignment score (1-10)\n\n3. **Usage Recommendations**\n   - Suggested platforms for repurposing\n   - Content enhancement suggestions\n   - Rights clearance needed (YES/NO)\n   - Commercial usage potential\n\n4. **Content Strategy Insights**\n   - Trending themes and topics\n   - Influencer identification\n   - Content gaps and opportunities\n   - Seasonal trends\n\nFormat as structured JSON with individual content analysis and aggregated insights. Prioritize high-quality, brand-aligned content for curation.",
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 4000
+        }
+      },
+      "id": "gemini-content-analysis",
+      "name": "🧠 Gemini Content Curation",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.3,
+      "position": [680, 400],
+      "notes": "🎯 Advanced content analysis\n📊 Quality scoring and categorization\n🎲 Strategic curation recommendations"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process AI curation results and organize content\nconst aiResponse = JSON.parse($input.first().json.choices[0].message.content);\n\nconst organizedContent = {\n  collection_timestamp: new Date().toISOString(),\n  total_content_collected: aiResponse.total_items_analyzed || 0,\n  high_quality_content: aiResponse.content_items.filter(item => \n    item.quality_assessment.visual_quality === 'HIGH' && \n    item.quality_assessment.relevance_to_brand === 'HIGH' &&\n    item.sentiment === 'positive'\n  ),\n  categorized_content: {\n    product_usage: aiResponse.content_items.filter(item => item.themes?.includes('product_usage')),\n    customer_experience: aiResponse.content_items.filter(item => item.themes?.includes('customer_experience')),\n    unboxing_reviews: aiResponse.content_items.filter(item => item.themes?.includes('unboxing')),\n    testimonials: aiResponse.content_items.filter(item => item.themes?.includes('testimonial')),\n    creative_content: aiResponse.content_items.filter(item => item.themes?.includes('creative'))\n  },\n  strategy_insights: aiResponse.strategy_insights,\n  content_gaps: aiResponse.content_gaps || [],\n  influencer_candidates: aiResponse.potential_influencers || []\n};\n\n// Add metadata to each content item\norganizedContent.high_quality_content.forEach(item => {\n  item.processed_at = new Date().toISOString();\n  item.curation_status = 'APPROVED';\n  item.rights_status = item.rights_clearance_needed ? 'PENDING' : 'CLEARED';\n  item.usage_score = \n    (item.quality_assessment.authenticity_score + item.brand_alignment_score) / 2;\n});\n\n// Generate curation summary\nconst curationSummary = {\n  total_collected: organizedContent.total_content_collected,\n  approved_for_use: organizedContent.high_quality_content.length,\n  approval_rate: ((organizedContent.high_quality_content.length / organizedContent.total_content_collected) * 100).toFixed(1) + '%',\n  top_themes: Object.keys(organizedContent.categorized_content).sort((a,b) => \n    organizedContent.categorized_content[b].length - organizedContent.categorized_content[a].length\n  ),\n  trending_topics: organizedContent.strategy_insights?.trending_themes || []\n};\n\norganizedContent.summary = curationSummary;\n\nreturn [{json: organizedContent}];"
+      },
+      "id": "content-organizer",
+      "name": "📂 Organize & Categorize Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400],
+      "notes": "🛡️ Categorizes and tags content\n📊 Generates curation statistics\n🔄 Prepares for database storage"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "ugc_content",
+        "columns": "collection_timestamp, total_collected, approved_count, top_themes, content_data, strategy_insights",
+        "additionalFields": {
+          "values": "={{$json.collection_timestamp}}, {{$json.total_content_collected}}, {{$json.high_quality_content.length}}, '{{JSON.stringify($json.summary.top_themes)}}', '{{JSON.stringify($json.categorized_content)}}', '{{JSON.stringify($json.strategy_insights)}}'"
+        }
+      },
+      "id": "ugc-database",
+      "name": "💾 Store UGC Content",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1120, 300],
+      "notes": "📈 UGC content database\n📊 Content performance tracking\n🔍 Brand content library"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C1234567890",
+          "mode": "list",
+          "cachedResultName": "ugc-alerts"
+        },
+        "text": "=📸 **UGC Collection Summary**\n\n**Content Collected:** {{$json.total_content_collected}}\n**Approved for Use:** {{$json.high_quality_content.length}}\n**Approval Rate:** {{$json.summary.approval_rate}}\n\n**Top Content Themes:**\n{{$json.summary.top_themes.slice(0,3).map(theme => `• ${theme.replace('_', ' ').toUpperCase()}: ${$json.categorized_content[theme].length} pieces`).join('\\n')}}\n\n**Trending Topics:**\n{{$json.summary.trending_topics.slice(0,3).map(topic => `• ${topic}`).join('\\n')}}\n\n{{$json.influencer_candidates.length > 0 ? '**🎯 Influencer Candidates:**\\n' + $json.influencer_candidates.slice(0,2).map(inf => `• ${inf.name} (${inf.followers} followers)`).join('\\n') : ''}}\n\n_Next collection in 2 hours_",
+        "otherOptions": {}
+      },
+      "id": "slack-ugc-summary",
+      "name": "📱 Slack UGC Summary",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1120, 500],
+      "notes": "🔔 UGC collection summaries\n📈 Content performance updates\n👥 Marketing team notifications"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "high-quality-content",
+              "leftValue": "={{$json.high_quality_content.length}}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "quality-content-filter",
+      "name": "✨ High-Quality Content Only",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1340, 400],
+      "notes": "Only processes approved high-quality content"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C1234567890",
+          "mode": "list",
+          "cachedResultName": "content-alerts"
+        },
+        "text": "=🎉 **New UGC Content Approved!**\n\n{{$json.high_quality_content.slice(0,5).map(item => `✨ **${item.content_type.toUpperCase()}** from ${item.platform}\\n• Theme: ${item.themes?.join(', ') || 'General'}\\n• Quality Score: ${item.usage_score}/10\\n• Link: ${item.source_url || item.permalink}\\n`).join('\\n\\n')}}\n\n**Ready for:**\n{{$json.high_quality_content[0]?.usage_recommendations?.slice(0,3).map(rec => `• ${rec}`).join('\\n') || 'Social media, website, email campaigns'}}\n\n⚡ *Content ready for immediate use*",
+        "otherOptions": {}
+      },
+      "id": "slack-content-alert",
+      "name": "🎉 Slack Content Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1560, 400],
+      "notes": "🎉 New content approval notifications\n📸 Ready-to-use UGC alerts\n👥 Creative team mobilization"
+    },
+    {
+      "parameters": {
+        "fromEmail": "ugc@yourcompany.com",
+        "toEmail": "marketing@yourcompany.com,content@yourcompany.com",
+        "subject": "=📸 UGC Content Report - {{new Date().toLocaleDateString()}}",
+        "html": "=<h2>User-Generated Content Report</h2>\n\n<h3>Collection Summary</h3>\n<ul>\n<li><strong>Total Content Collected:</strong> {{$json.total_content_collected}}</li>\n<li><strong>Approved for Use:</strong> {{$json.high_quality_content.length}}</li>\n<li><strong>Approval Rate:</strong> {{$json.summary.approval_rate}}</li>\n</ul>\n\n<h3>Content by Category</h3>\n<ul>\n{{$json.summary.top_themes.map(theme => `<li><strong>${theme.replace('_', ' ').toUpperCase()}:</strong> ${$json.categorized_content[theme].length} pieces</li>`).join('')}}\n</ul>\n\n<h3>Strategy Insights</h3>\n{{$json.strategy_insights?.content_gaps?.slice(0,3).map(gap => `<p><strong>Content Gap:</strong> ${gap}</p>`).join('') || '<p>No significant content gaps identified</p>'}}\n\n<h3>Top Approved Content</h3>\n{{$json.high_quality_content.slice(0,3).map(item => `<div style=\"border:1px solid #ddd; padding:10px; margin:10px 0;\">\n<p><strong>${item.content_type.toUpperCase()}</strong> from ${item.platform}</p>\n<p>Theme: ${item.themes?.join(', ') || 'General'}</p>\n<p>Quality Score: ${item.usage_score}/10</p>\n<p><a href=\"${item.source_url || item.permalink}\">View Content</a></p>\n</div>`).join('')}}\n\n<p><em>Report generated by AI UGC Collector & Organizer</em></p>",
+        "options": {}
+      },
+      "id": "ugc-email-report",
+      "name": "📧 UGC Content Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1780, 400],
+      "notes": "📧 Detailed UGC reports\n📊 Content performance analysis\n👔 Marketing team updates"
+    }
+  ],
+  "connections": {
+    "⏰ Every 2 Hours UGC Collection": {
+      "main": [
+        [
+          {
+            "node": "📷 Instagram UGC Collector",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🐦 Twitter UGC Collector",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🎵 TikTok UGC Collector",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "⭐ Google Reviews Collector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📷 Instagram UGC Collector": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Content Curation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🐦 Twitter UGC Collector": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Content Curation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎵 TikTok UGC Collector": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Content Curation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⭐ Google Reviews Collector": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Content Curation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 AI Content Curation": {
+      "main": [
+        [
+          {
+            "node": "📂 Organize & Categorize Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📂 Organize & Categorize Content": {
+      "main": [
+        [
+          {
+            "node": "💾 Store UGC Content",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📱 Slack UGC Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "✨ High-Quality Content Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✨ High-Quality Content Only": {
+      "main": [
+        [
+          {
+            "node": "🎉 Slack Content Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📧 UGC Content Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "content-marketing",
+      "name": "Content Marketing"
+    },
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "ugc-collection",
+      "name": "UGC Collection"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-30T10:00:00.000Z",
+  "versionId": "1.0.0"
+}

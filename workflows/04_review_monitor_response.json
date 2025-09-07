@@ -63,7 +63,7 @@
     },
     {
       "parameters": {
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "gemini-2.0-flash-exp",
         "prompt": "=You are an expert customer service AI specializing in Amazon review analysis and response strategy.\n\nReview Data: {{JSON.stringify($json, null, 2)}}\n\nFor each review, analyze:\n1. **Sentiment**: Positive/Neutral/Negative (1-5 scale)\n2. **Key Issues**: Specific problems mentioned\n3. **Response Urgency**: Immediate/Standard/Monitor\n4. **Customer Type**: First-time/Repeat/Potential influencer\n5. **Response Strategy**: Tone, key points, actions needed\n\nResponse Guidelines:\n- **5-Star Reviews**: Thank, ask for referrals, highlight specific features they loved\n- **4-Star Reviews**: Thank, address minor concerns, encourage future purchases\n- **3-Star Reviews**: Empathetic response, offer solutions, follow up privately\n- **1-2 Star Reviews**: Apologize, take ownership, offer immediate resolution\n\nReturn JSON with:\n- review_id\n- sentiment_score (1-5)\n- priority_level\n- key_issues[]\n- response_recommended (true/false)\n- suggested_response\n- follow_up_actions[]",
         "options": {
           "temperature": 0.3,

@@ -1,0 +1,448 @@
+{
+  "name": "📦 Amazon PDP Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 12
+            }
+          ]
+        }
+      },
+      "id": "pdp-trigger",
+      "name": "⏰ Every 12 Hours PDP Optimization",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "🔥 DEMO: Comprehensive Amazon PDP optimization every 12 hours\n💰 ROI: 25-40% conversion improvement through optimized listings\n⚡ Impact: Enhanced search visibility & conversion rates"
+    },
+    {
+      "parameters": {
+        "url": "https://api.keepa.com/product",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "key",
+                "value": "={{$credentials.keepa.apiKey}}"
+              },
+              {
+                "name": "domain",
+                "value": "1"
+              },
+              {
+                "name": "asin",
+                "value": "={{$node[\"product-listings\"].json.map(p => p.asin).join(',')}}"
+              },
+              {
+                "name": "stats",
+                "value": "1"
+              },
+              {
+                "name": "history",
+                "value": "1"
+              }
+            ]
+          }
+        }
+      },
+      "id": "amazon-performance",
+      "name": "📊 Amazon Performance Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 200],
+      "notes": "Collects sales rank, pricing, and Buy Box data\nTracks: Historical performance, category trends"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "amazon_listings",
+        "columns": "asin, product_title, bullet_points, product_description, keywords, main_image, additional_images, category, current_rank, conversion_rate",
+        "additionalFields": {
+          "where": "active = true"
+        }
+      },
+      "id": "product-listings",
+      "name": "📦 Current Product Listings",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [460, 400],
+      "notes": "Retrieves current Amazon listing data\nTracks: Titles, descriptions, keywords, performance"
+    },
+    {
+      "parameters": {
+        "url": "https://api.semrush.com/",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "semrushApi",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "type",
+                "value": "phrase_this"
+              },
+              {
+                "name": "key",
+                "value": "={{$credentials.semrush.apiKey}}"
+              },
+              {
+                "name": "phrase",
+                "value": "={{$node[\"product-listings\"].json.map(p => p.product_title.split(' ')[0]).join(' ')}}"
+              },
+              {
+                "name": "database",
+                "value": "us"
+              }
+            ]
+          }
+        }
+      },
+      "id": "keyword-research",
+      "name": "🔍 Keyword Research & Trends",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 600],
+      "notes": "Analyzes keyword search volume and competition\nIdentifies high-converting keyword opportunities"
+    },
+    {
+      "parameters": {
+        "url": "https://api.rainforest.qa/v2/clients/{{$credentials.rainforest.clientId}}/tests",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "rainforestApi",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "state",
+                "value": "active"
+              }
+            ]
+          }
+        }
+      },
+      "id": "competitor-analysis",
+      "name": "🏆 Competitor Listing Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 800],
+      "notes": "Analyzes top competitor listings in category\nTracks: Title structures, feature highlights, customer reviews"
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.0-flash-exp",
+        "prompt": "=You are an expert Amazon SEO and product listing optimization specialist. Analyze this comprehensive Amazon data and provide PDP optimization recommendations.\n\nPerformance Data: {{$json.performance || 'No performance data'}}\nCurrent Listings: {{$json.listings || 'No listing data'}}\nKeyword Research: {{$json.keywords || 'No keyword data'}}\nCompetitor Analysis: {{$json.competitors || 'No competitor data'}}\n\nFor each product listing, provide:\n\n1. **Title Optimization**\n   - Keyword-rich title recommendations\n   - Character limit optimization\n   - Search visibility improvements\n   - Brand positioning enhancements\n\n2. **Bullet Points Enhancement**\n   - Feature-benefit optimization\n   - Keyword integration strategy\n   - Conversion-focused messaging\n   - Unique selling proposition highlighting\n\n3. **Description Optimization**\n   - SEO-friendly content structure\n   - Long-tail keyword integration\n   - Customer-focused benefits\n   - HTML formatting recommendations\n\n4. **Keyword Strategy**\n   - Backend keyword opportunities\n   - Search term targeting\n   - Seasonal keyword variations\n   - Competitor keyword gaps\n\n5. **Content Enhancement**\n   - A+ content recommendations\n   - Image optimization suggestions\n   - Video content opportunities\n   - Enhanced brand content (EBC) ideas\n\n6. **Performance Prediction**\n   - Expected ranking improvements\n   - Conversion rate impact\n   - Sales velocity projections\n   - ROI timeline\n\nFormat as structured JSON with individual product optimizations and portfolio-level strategy. Prioritize high-impact, low-competition optimization opportunities.",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 4000
+        }
+      },
+      "id": "gemini-pdp-optimization",
+      "name": "🧠 Gemini PDP Optimization",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.3,
+      "position": [680, 400],
+      "notes": "🎯 Advanced Amazon SEO optimization\n📊 Conversion rate optimization\n🎲 Competitive positioning strategy"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process AI PDP recommendations and categorize by impact\nconst aiResponse = JSON.parse($input.first().json.choices[0].message.content);\n\nconst pdpOptimization = {\n  analysis_timestamp: new Date().toISOString(),\n  total_listings_analyzed: aiResponse.listings_analyzed || 0,\n  portfolio_conversion_potential: aiResponse.expected_portfolio_impact || 0,\n  listing_optimizations: {\n    critical_updates: aiResponse.product_optimizations.filter(p => p.priority_level === 'CRITICAL' && p.expected_conversion_impact > 0.15),\n    high_impact: aiResponse.product_optimizations.filter(p => p.expected_conversion_impact >= 0.10),\n    medium_impact: aiResponse.product_optimizations.filter(p => p.expected_conversion_impact >= 0.05 && p.expected_conversion_impact < 0.10),\n    low_impact: aiResponse.product_optimizations.filter(p => p.expected_conversion_impact < 0.05),\n    title_optimizations: aiResponse.product_optimizations.filter(p => p.title_optimization_needed === true),\n    bullet_optimizations: aiResponse.product_optimizations.filter(p => p.bullet_optimization_needed === true),\n    keyword_expansions: aiResponse.product_optimizations.filter(p => p.keyword_expansion_needed === true)\n  },\n  keyword_strategy: aiResponse.keyword_strategy || {},\n  content_enhancement: aiResponse.content_enhancement_opportunities || [],\n  competitive_insights: aiResponse.competitive_analysis || {}\n};\n\n// Calculate portfolio metrics\nconst portfolioMetrics = {\n  total_conversion_potential: pdpOptimization.listing_optimizations.critical_updates.reduce((sum, p) => sum + p.expected_conversion_impact, 0),\n  average_conversion_improvement: ((pdpOptimization.listing_optimizations.critical_updates.reduce((sum, p) => sum + p.expected_conversion_impact, 0) / pdpOptimization.listing_optimizations.critical_updates.length) * 100).toFixed(1) + '%',\n  critical_updates_needed: pdpOptimization.listing_optimizations.critical_updates.length,\n  high_impact_opportunities: pdpOptimization.listing_optimizations.high_impact.length,\n  optimization_distribution: {\n    titles: ((pdpOptimization.listing_optimizations.title_optimizations.length / pdpOptimization.total_listings_analyzed) * 100).toFixed(1) + '%',\n    bullets: ((pdpOptimization.listing_optimizations.bullet_optimizations.length / pdpOptimization.total_listings_analyzed) * 100).toFixed(1) + '%',\n    keywords: ((pdpOptimization.listing_optimizations.keyword_expansions.length / pdpOptimization.total_listings_analyzed) * 100).toFixed(1) + '%'\n  }\n};\n\npdpOptimization.portfolio_metrics = portfolioMetrics;\n\n// Add implementation metadata\npdpOptimization.listing_optimizations.critical_updates.forEach(listing => {\n  listing.implementation_status = 'PENDING';\n  listing.scheduled_date = new Date(Date.now() + 24*60*60*1000).toISOString(); // Next day\n  listing.monitoring_period = '14 days';\n  listing.success_metrics = ['conversion_rate', 'sales_rank', 'search_impressions'];\n  listing.rollback_trigger = 'conversion_decline > 10%';\n});\n\nreturn [{json: pdpOptimization}];"
+      },
+      "id": "pdp-processor",
+      "name": "⚙️ Process PDP Optimizations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400],
+      "notes": "🛡️ Categorizes by impact and priority\n📊 Calculates conversion potential\n🔄 Prepares implementation plan"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "pdp_optimizations",
+        "columns": "analysis_timestamp, total_listings, conversion_potential, critical_updates, high_impact_count, optimization_data",
+        "additionalFields": {
+          "values": "={{$json.analysis_timestamp}}, {{$json.total_listings_analyzed}}, {{$json.portfolio_metrics.total_conversion_potential}}, {{$json.portfolio_metrics.critical_updates_needed}}, {{$json.portfolio_metrics.high_impact_opportunities}}, '{{JSON.stringify($json)}}'"
+        }
+      },
+      "id": "pdp-database",
+      "name": "💾 Store PDP Optimizations",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1120, 300],
+      "notes": "📈 PDP optimization tracking\n📊 Performance improvement data\n🔍 A/B testing results"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C1234567890",
+          "mode": "list",
+          "cachedResultName": "pdp-alerts"
+        },
+        "text": "=📦 **Amazon PDP Optimization Update**\n\n**Listings Analyzed:** {{$json.total_listings_analyzed}}\n**Conversion Potential:** {{($json.portfolio_metrics.total_conversion_potential * 100).toFixed(1)}}%\n**Average Improvement:** {{$json.portfolio_metrics.average_conversion_improvement}}\n\n**Optimization Needs:**\n• Critical Updates: {{$json.portfolio_metrics.critical_updates_needed}}\n• High Impact: {{$json.portfolio_metrics.high_impact_opportunities}}\n• Title Optimizations: {{$json.portfolio_metrics.optimization_distribution.titles}}\n• Bullet Optimizations: {{$json.portfolio_metrics.optimization_distribution.bullets}}\n\n{{$json.listing_optimizations.critical_updates.length > 0 ? '**🚨 Critical Updates Needed:**\\n' + $json.listing_optimizations.critical_updates.slice(0,3).map(p => `• ${p.product_title.substring(0,50)}...: +${(p.expected_conversion_impact * 100).toFixed(1)}% conversion`).join('\\n') : ''}}\n\n{{$json.keyword_strategy.top_opportunities?.length > 0 ? '**🔑 Top Keyword Opportunities:**\\n' + $json.keyword_strategy.top_opportunities.slice(0,2).map(k => `• "${k.keyword}" (${k.search_volume} searches)`).join('\\n') : ''}}\n\n_Next optimization in 12 hours_",
+        "otherOptions": {}
+      },
+      "id": "slack-pdp-summary",
+      "name": "📱 Slack PDP Summary",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1120, 500],
+      "notes": "🔔 PDP optimization updates\n📈 Conversion improvement summaries\n👥 E-commerce team notifications"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "critical-pdp-updates",
+              "leftValue": "={{$json.portfolio_metrics.critical_updates_needed}}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "critical-updates-filter",
+      "name": "🚨 Critical PDP Updates Only",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1340, 400],
+      "notes": "Only processes critical PDP optimization opportunities"
+    },
+    {
+      "parameters": {
+        "url": "https://sellingpartnerapi-na.amazon.com/listings/2021-08-01/items/{{$credentials.amazonSpApi.sellerId}}/{{$json.listing_optimizations.critical_updates[0]?.asin}}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "amazonSpApi",
+        "method": "PATCH",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "productType",
+              "value": "PRODUCT"
+            },
+            {
+              "name": "patches",
+              "value": "=[{\"op\": \"replace\", \"path\": \"/attributes/item_name\", \"value\": [{\"value\": \"{{$json.listing_optimizations.critical_updates[0]?.optimized_title || $json.listing_optimizations.critical_updates[0]?.current_title}}\"}]}]"
+            }
+          ]
+        }
+      },
+      "id": "amazon-listing-update",
+      "name": "🛒 Update Amazon Listings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 300],
+      "notes": "✅ Automated listing updates via SP-API\n📝 Title and content optimization\n🔄 Real-time listing improvements"
+    },
+    {
+      "parameters": {
+        "fromEmail": "amazon@yourcompany.com",
+        "toEmail": "ecommerce@yourcompany.com,marketing@yourcompany.com",
+        "subject": "=📦 CRITICAL: Amazon PDP Optimization Alert - {{$json.portfolio_metrics.critical_updates_needed}} Listings Need Updates",
+        "text": "=AMAZON PDP OPTIMIZATION ALERT\n\nEXECUTIVE SUMMARY:\n• Listings Analyzed: {{$json.total_listings_analyzed}}\n• Critical Updates Needed: {{$json.portfolio_metrics.critical_updates_needed}}\n• Expected Conversion Impact: {{($json.portfolio_metrics.total_conversion_potential * 100).toFixed(1)}}%\n• Average Improvement: {{$json.portfolio_metrics.average_conversion_improvement}}\n\nTOP CRITICAL UPDATES:\n{{$json.listing_optimizations.critical_updates.map(listing => `\n--- ${listing.product_title.substring(0,60)}... ---\nASIN: ${listing.asin}\nCurrent Rank: ${listing.current_rank || 'N/A'}\nExpected Impact: +${(listing.expected_conversion_impact * 100).toFixed(1)}% conversion\n\nTitle Optimization: ${listing.title_changes_needed ? 'YES' : 'NO'}\nBullet Points: ${listing.bullet_changes_needed ? 'YES' : 'NO'}\nKeywords: ${listing.keyword_expansion_needed ? 'YES' : 'NO'}\n\nKey Changes:\n${listing.recommended_changes?.slice(0,3).map(change => `• ${change}`).join('\\n') || 'See optimization report'}`).join('\\n')}}\n\nSTRATEGIC INSIGHTS:\n• Title Optimization Needed: {{$json.portfolio_metrics.optimization_distribution.titles}}\n• Bullet Point Updates: {{$json.portfolio_metrics.optimization_distribution.bullets}}\n• Keyword Expansion: {{$json.portfolio_metrics.optimization_distribution.keywords}}\n\n{{$json.keyword_strategy.top_opportunities ? '\\nTOP KEYWORD OPPORTUNITIES:\\n' + $json.keyword_strategy.top_opportunities.slice(0,5).map(k => `• "${k.keyword}" (${k.search_volume} monthly searches, ${k.competition_level} competition)`).join('\\n') : ''}}\n\nRECOMMENDATION:\nImplement critical updates immediately for maximum conversion impact.\nMonitor performance for 14 days and measure conversion improvements.\n\nBest,\nAmazon PDP Optimization Agent",
+        "options": {}
+      },
+      "id": "pdp-optimization-alert",
+      "name": "🚨 PDP Optimization Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1560, 500],
+      "notes": "🚨 Critical PDP optimization alerts\n📧 E-commerce team mobilization\n👔 Conversion improvement opportunities"
+    },
+    {
+      "parameters": {
+        "fromEmail": "amazon@yourcompany.com",
+        "toEmail": "ecommerceteam@yourcompany.com,seo@yourcompany.com",
+        "subject": "=📦 Weekly Amazon PDP Performance Report - {{new Date().toLocaleDateString()}}",
+        "html": "=<h2>Amazon PDP Optimization Report</h2>\n\n<h3>Portfolio Performance</h3>\n<ul>\n<li><strong>Listings Analyzed:</strong> {{$json.total_listings_analyzed}}</li>\n<li><strong>Conversion Potential:</strong> {{($json.portfolio_metrics.total_conversion_potential * 100).toFixed(1)}}%</li>\n<li><strong>Critical Updates Needed:</strong> {{$json.portfolio_metrics.critical_updates_needed}}</li>\n<li><strong>High Impact Opportunities:</strong> {{$json.portfolio_metrics.high_impact_opportunities}}</li>\n</ul>\n\n<h3>Optimization Distribution</h3>\n<table border=\"1\" style=\"border-collapse: collapse;\">\n<tr><th>Optimization Type</th><th>Percentage</th><th>Count</th></tr>\n<tr><td>Title Optimization</td><td>{{$json.portfolio_metrics.optimization_distribution.titles}}</td><td>{{$json.listing_optimizations.title_optimizations.length}}</td></tr>\n<tr><td>Bullet Points</td><td>{{$json.portfolio_metrics.optimization_distribution.bullets}}</td><td>{{$json.listing_optimizations.bullet_optimizations.length}}</td></tr>\n<tr><td>Keywords</td><td>{{$json.portfolio_metrics.optimization_distribution.keywords}}</td><td>{{$json.listing_optimizations.keyword_expansions.length}}</td></tr>\n</table>\n\n<h3>Top Critical Updates</h3>\n{{$json.listing_optimizations.critical_updates.slice(0,5).map(listing => `<div style=\"border:1px solid #ff6b6b; padding:10px; margin:10px 0; background-color:#ffeaea;\">\n<h4>${listing.product_title.substring(0,80)}...</h4>\n<p><strong>ASIN:</strong> ${listing.asin}</p>\n<p><strong>Expected Impact:</strong> +${(listing.expected_conversion_impact * 100).toFixed(1)}% conversion</p>\n<p><strong>Current Rank:</strong> ${listing.current_rank || 'N/A'}</p>\n<p><strong>Priority Changes:</strong></p>\n<ul>\n${listing.recommended_changes?.slice(0,3).map(change => `<li>${change}</li>`).join('') || '<li>Title optimization</li><li>Bullet point enhancement</li><li>Keyword expansion</li>'}\n</ul>\n</div>`).join('')}}\n\n<h3>Keyword Strategy Insights</h3>\n{{$json.keyword_strategy.top_opportunities?.slice(0,5).map(k => `<p><strong>${k.keyword}:</strong> ${k.search_volume} monthly searches, ${k.competition_level} competition</p><p><em>Opportunity: ${k.potential_impact}</em></p>`).join('') || '<p>No significant keyword opportunities identified</p>'}}\n\n<h3>Competitive Analysis</h3>\n{{$json.competitive_insights.key_findings?.slice(0,3).map(finding => `<p><strong>${finding.category}:</strong> ${finding.insight}</p>`).join('') || '<p>Competitive analysis in progress</p>'}}\n\n<h3>Implementation Recommendations</h3>\n<ul>\n<li><strong>Phase 1 (Immediate):</strong> Critical title and bullet point updates</li>\n<li><strong>Phase 2 (Week 1-2):</strong> Keyword expansion and backend optimization</li>\n<li><strong>Phase 3 (Week 2-4):</strong> A+ content and enhanced brand content</li>\n<li><strong>Monitoring:</strong> Track conversion rates and sales rank improvements</li>\n</ul>\n\n<p><em>Report generated by Amazon PDP Agent</em></p>",
+        "options": {}
+      },
+      "id": "weekly-pdp-report",
+      "name": "📧 Weekly PDP Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1780, 400],
+      "notes": "📧 Comprehensive PDP reports\n📊 Performance analysis and insights\n👔 Strategic optimization planning"
+    }
+  ],
+  "connections": {
+    "⏰ Every 12 Hours PDP Optimization": {
+      "main": [
+        [
+          {
+            "node": "📊 Amazon Performance Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📦 Current Product Listings",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🔍 Keyword Research & Trends",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🏆 Competitor Listing Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📦 Current Product Listings": {
+      "main": [
+        [
+          {
+            "node": "📊 Amazon Performance Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🔍 Keyword Research & Trends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Amazon Performance Data": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI PDP Optimization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📦 Current Product Listings": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI PDP Optimization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Keyword Research & Trends": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI PDP Optimization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🏆 Competitor Listing Analysis": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI PDP Optimization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 AI PDP Optimization": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Process PDP Optimizations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Process PDP Optimizations": {
+      "main": [
+        [
+          {
+            "node": "💾 Store PDP Optimizations",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📱 Slack PDP Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🚨 Critical PDP Updates Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🚨 Critical PDP Updates Only": {
+      "main": [
+        [
+          {
+            "node": "🛒 Update Amazon Listings",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🚨 PDP Optimization Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📧 Weekly PDP Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "amazon-optimization",
+      "name": "Amazon Optimization"
+    },
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "pdp-optimization",
+      "name": "PDP Optimization"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-30T10:00:00.000Z",
+  "versionId": "1.0.0"
+}

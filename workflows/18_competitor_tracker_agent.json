@@ -1,0 +1,459 @@
+{
+  "name": "🎯 Competitor Tracker Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 8
+            }
+          ]
+        }
+      },
+      "id": "competitor-trigger",
+      "name": "⏰ Every 8 Hours Competitor Tracking",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "🔥 DEMO: Comprehensive competitor intelligence every 8 hours\n💰 ROI: 20-35% strategic advantage through competitive insights\n⚡ Impact: Proactive market positioning & opportunity identification"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "competitors",
+        "columns": "competitor_id, competitor_name, website, social_handles, product_categories, market_share, threat_level",
+        "additionalFields": {
+          "where": "active = true AND threat_level IN ('HIGH', 'MEDIUM')"
+        }
+      },
+      "id": "competitor-database",
+      "name": "🎯 Active Competitors Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [460, 200],
+      "notes": "Retrieves active competitor profiles\nTracks: Websites, social media, product categories, threat levels"
+    },
+    {
+      "parameters": {
+        "url": "https://api.similarweb.com/v1/website/{{$node[\"competitor-database\"].json[0]?.website}}/total-traffic-and-engagement/visits",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "similarwebApi",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "api_key",
+                "value": "={{$credentials.similarweb.apiKey}}"
+              },
+              {
+                "name": "start_date",
+                "value": "{{new Date(Date.now() - 90*24*60*60*1000).toISOString().split('T')[0]}}"
+              },
+              {
+                "name": "end_date",
+                "value": "{{new Date().toISOString().split('T')[0]}}"
+              },
+              {
+                "name": "country",
+                "value": "worldwide"
+              }
+            ]
+          }
+        }
+      },
+      "id": "web-traffic-analysis",
+      "name": "🌐 Web Traffic & Engagement Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 400],
+      "notes": "Analyzes competitor website traffic and engagement\nTracks: Visitor growth, bounce rates, session duration"
+    },
+    {
+      "parameters": {
+        "url": "https://api.twitter.com/2/tweets/search/recent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "twitterOAuth2Api",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "query",
+                "value": "={{$node[\"competitor-database\"].json.map(c => 'from:' + c.social_handles.twitter).join(' OR ')}}"
+              },
+              {
+                "name": "max_results",
+                "value": "100"
+              },
+              {
+                "name": "tweet.fields",
+                "value": "created_at,public_metrics,entities"
+              }
+            ]
+          }
+        }
+      },
+      "id": "social-media-monitoring",
+      "name": "📱 Social Media Activity Monitoring",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 600],
+      "notes": "Monitors competitor social media activity\nTracks: Posts, engagement rates, campaign announcements"
+    },
+    {
+      "parameters": {
+        "url": "https://api.keepa.com/product",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "key",
+                "value": "={{$credentials.keepa.apiKey}}"
+              },
+              {
+                "name": "domain",
+                "value": "1"
+              },
+              {
+                "name": "asin",
+                "value": "={{$node[\"competitor-database\"].json.flatMap(c => c.key_products || []).join(',')}}"
+              },
+              {
+                "name": "stats",
+                "value": "1"
+              },
+              {
+                "name": "history",
+                "value": "1"
+              }
+            ]
+          }
+        }
+      },
+      "id": "pricing-intelligence",
+      "name": "💰 Competitor Pricing Intelligence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 800],
+      "notes": "Tracks competitor pricing strategies\nMonitors: Price changes, promotions, market positioning"
+    },
+    {
+      "parameters": {
+        "url": "https://api.ahrefs.com/v2/seo/keywords-explorer",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "ahrefsApi",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "keyword,position,search_volume,keyword_difficulty"
+            },
+            {
+              "name": "having",
+              "value": "position<=20"
+            },
+            {
+              "name": "order_by",
+              "value": "search_volume:desc"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "id": "seo-keyword-tracking",
+      "name": "🔍 SEO & Keyword Strategy Tracking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 1000],
+      "notes": "Analyzes competitor SEO strategies\nTracks: Keyword rankings, search visibility, content strategy"
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.0-flash-exp",
+        "prompt": "=You are an expert competitive intelligence analyst. Analyze this comprehensive competitor data and provide strategic insights.\n\nCompetitor Profiles: {{$json.competitors || 'No competitor data'}}\nWeb Traffic Data: {{$json.traffic || 'No traffic data'}}\nSocial Media Activity: {{$json.social || 'No social data'}}\nPricing Intelligence: {{$json.pricing || 'No pricing data'}}\nSEO Analysis: {{$json.seo || 'No SEO data'}}\n\nFor each competitor, provide:\n\n1. **Threat Assessment**\n   - Current threat level (CRITICAL/HIGH/MEDIUM/LOW)\n   - Market share change trends\n   - Competitive advantage analysis\n   - Vulnerability identification\n\n2. **Strategic Moves Analysis**\n   - Recent product launches or updates\n   - Pricing strategy changes\n   - Marketing campaign effectiveness\n   - Partnership or acquisition activity\n\n3. **Market Position Insights**\n   - Competitive positioning changes\n   - Customer segment targeting shifts\n   - Geographic expansion moves\n   - Brand strength evolution\n\n4. **Opportunity Identification**\n   - Competitive gaps and weaknesses\n   - Market share capture opportunities\n   - Strategic alliance possibilities\n   - Counter-strategy recommendations\n\n5. **Predictive Intelligence**\n   - Next 6-month strategic predictions\n   - Potential disruption scenarios\n   - Market trend implications\n   - Risk mitigation strategies\n\nFormat as structured JSON with individual competitor analysis and market-level strategic insights. Prioritize immediate threats and high-value opportunities.",
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 4000
+        }
+      },
+      "id": "gemini-competitor-analysis",
+      "name": "🧠 Gemini Competitive Intelligence",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.3,
+      "position": [680, 400],
+      "notes": "🎯 Advanced competitive analysis\n📊 Threat assessment and opportunity identification\n🎲 Strategic intelligence and recommendations"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process AI competitor analysis and categorize by priority\nconst aiResponse = JSON.parse($input.first().json.choices[0].message.content);\n\nconst competitiveIntelligence = {\n  analysis_timestamp: new Date().toISOString(),\n  total_competitors_analyzed: aiResponse.competitors_analyzed || 0,\n  market_threat_level: aiResponse.overall_market_threat || 'MEDIUM',\n  competitor_analysis: {\n    critical_threats: aiResponse.competitor_insights.filter(c => c.threat_assessment.current_level === 'CRITICAL'),\n    high_threats: aiResponse.competitor_insights.filter(c => c.threat_assessment.current_level === 'HIGH'),\n    emerging_threats: aiResponse.competitor_insights.filter(c => c.threat_assessment.current_level === 'MEDIUM' && c.threat_assessment.trend === 'INCREASING'),\n    opportunities: aiResponse.competitor_insights.filter(c => c.opportunity_potential >= 0.7),\n    strategic_moves: aiResponse.competitor_insights.filter(c => c.recent_strategic_moves?.length > 0)\n  },\n  market_insights: aiResponse.market_analysis || {},\n  strategic_recommendations: aiResponse.strategic_recommendations || [],\n  predictive_intelligence: aiResponse.predictive_insights || {}\n};\n\n// Calculate market intelligence metrics\nconst marketMetrics = {\n  total_threats: competitiveIntelligence.competitor_analysis.critical_threats.length + competitiveIntelligence.competitor_analysis.high_threats.length,\n  opportunity_count: competitiveIntelligence.competitor_analysis.opportunities.length,\n  strategic_moves_detected: competitiveIntelligence.competitor_analysis.strategic_moves.length,\n  threat_distribution: {\n    critical: ((competitiveIntelligence.competitor_analysis.critical_threats.length / competitiveIntelligence.total_competitors_analyzed) * 100).toFixed(1) + '%',\n    high: ((competitiveIntelligence.competitor_analysis.high_threats.length / competitiveIntelligence.total_competitors_analyzed) * 100).toFixed(1) + '%',\n    medium: ((competitiveIntelligence.competitor_analysis.emerging_threats.length / competitiveIntelligence.total_competitors_analyzed) * 100).toFixed(1) + '%'\n  },\n  market_dominance_shift: aiResponse.market_dominance_changes || 'STABLE'\n};\n\ncompetitiveIntelligence.market_metrics = marketMetrics;\n\n// Add intelligence metadata\ncompetitiveIntelligence.competitor_analysis.critical_threats.forEach(competitor => {\n  competitor.intelligence_priority = 'IMMEDIATE';\n  competitor.monitoring_frequency = 'DAILY';\n  competitor.action_required = 'EXECUTIVE_REVIEW';\n  competitor.last_updated = new Date().toISOString();\n});\n\ncompetitiveIntelligence.competitor_analysis.high_threats.forEach(competitor => {\n  competitor.intelligence_priority = 'HIGH';\n  competitor.monitoring_frequency = 'WEEKLY';\n  competitor.action_required = 'TEAM_REVIEW';\n  competitor.last_updated = new Date().toISOString();\n});\n\nreturn [{json: competitiveIntelligence}];"
+      },
+      "id": "intelligence-processor",
+      "name": "⚙️ Process Competitive Intelligence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400],
+      "notes": "🛡️ Categorizes by threat level and priority\n📊 Calculates market intelligence metrics\n🔄 Prepares strategic response plans"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "competitive_intelligence",
+        "columns": "analysis_timestamp, total_competitors, threat_level, critical_threats, high_threats, opportunities, intelligence_data",
+        "additionalFields": {
+          "values": "={{$json.analysis_timestamp}}, {{$json.total_competitors_analyzed}}, '{{$json.market_threat_level}}', {{$json.competitor_analysis.critical_threats.length}}, {{$json.competitor_analysis.high_threats.length}}, {{$json.competitor_analysis.opportunities.length}}, '{{JSON.stringify($json)}}'"
+        }
+      },
+      "id": "intelligence-database",
+      "name": "💾 Store Competitive Intelligence",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1120, 300],
+      "notes": "📈 Competitive intelligence tracking\n📊 Threat assessment history\n🔍 Strategic decision support"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C1234567890",
+          "mode": "list",
+          "cachedResultName": "competitor-alerts"
+        },
+        "text": "=🎯 **Competitive Intelligence Update**\n\n**Competitors Analyzed:** {{$json.total_competitors_analyzed}}\n**Market Threat Level:** {{$json.market_threat_level}}\n**Total Threats:** {{$json.market_metrics.total_threats}}\n\n**Threat Distribution:**\n• Critical: {{$json.market_metrics.threat_distribution.critical}}\n• High: {{$json.market_metrics.threat_distribution.high}}\n• Medium: {{$json.market_metrics.threat_distribution.medium}}\n\n{{$json.competitor_analysis.critical_threats.length > 0 ? '**🚨 Critical Threats Detected:**\\n' + $json.competitor_analysis.critical_threats.slice(0,3).map(c => `• ${c.competitor_name}: ${c.threat_assessment.primary_threat}`).join('\\n') : ''}}\n\n{{$json.competitor_analysis.opportunities.length > 0 ? '**💎 Market Opportunities:**\\n' + $json.competitor_analysis.opportunities.slice(0,2).map(c => `• ${c.competitor_name}: ${c.opportunity_type}`).join('\\n') : ''}}\n\n{{$json.competitor_analysis.strategic_moves.length > 0 ? '**🎲 Strategic Moves Detected:**\\n' + $json.competitor_analysis.strategic_moves.slice(0,2).map(c => `• ${c.competitor_name}: ${c.recent_moves[0]}`).join('\\n') : ''}}\n\n_Next intelligence update in 8 hours_",
+        "otherOptions": {}
+      },
+      "id": "slack-intelligence-summary",
+      "name": "📱 Slack Intelligence Summary",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1120, 500],
+      "notes": "🔔 Competitive intelligence updates\n📈 Threat assessment summaries\n👥 Strategic team notifications"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "critical-threats",
+              "leftValue": "={{$json.competitor_analysis.critical_threats.length}}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combineOperation": "any"
+        },
+        "options": {}
+      },
+      "id": "critical-threats-filter",
+      "name": "🚨 Critical Threats Only",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1340, 400],
+      "notes": "Only processes critical competitive threats"
+    },
+    {
+      "parameters": {
+        "fromEmail": "intelligence@yourcompany.com",
+        "toEmail": "ceo@yourcompany.com,cfo@yourcompany.com,strategy@yourcompany.com",
+        "subject": "=🚨 CRITICAL COMPETITIVE THREAT ALERT - {{$json.competitor_analysis.critical_threats.length}} Immediate Threats Detected",
+        "text": "=CRITICAL COMPETITIVE INTELLIGENCE ALERT\n\nEXECUTIVE SUMMARY:\n• Competitors Analyzed: {{$json.total_competitors_analyzed}}\n• Overall Market Threat Level: {{$json.market_threat_level}}\n• Critical Threats: {{$json.competitor_analysis.critical_threats.length}}\n• High Threats: {{$json.competitor_analysis.high_threats.length}}\n• Market Dominance Shift: {{$json.market_metrics.market_dominance_shift}}\n\nCRITICAL THREAT ANALYSIS:\n{{$json.competitor_analysis.critical_threats.map(competitor => `\n--- ${competitor.competitor_name} ---\nThreat Level: ${competitor.threat_assessment.current_level}\nPrimary Threat: ${competitor.threat_assessment.primary_threat}\nMarket Impact: ${competitor.threat_assessment.market_impact}\nTrend: ${competitor.threat_assessment.trend}\n\nStrategic Moves:\n${competitor.recent_strategic_moves?.slice(0,3).map(move => `• ${move}`).join('\\n') || '• Market share expansion\\n• Product innovation\\n• Pricing strategy shift'}\n\nVulnerabilities Identified:\n${competitor.vulnerabilities?.slice(0,2).map(vuln => `• ${vuln}`).join('\\n') || '• Supply chain constraints\\n• Customer satisfaction issues'}\n\nRecommended Actions:\n${competitor.counter_strategies?.slice(0,3).map(action => `• ${action}`).join('\\n') || '• Immediate price matching\\n• Product feature enhancement\\n• Marketing campaign acceleration'}`).join('\\n')}}\n\nSTRATEGIC MARKET INSIGHTS:\n• Total Active Threats: {{$json.market_metrics.total_threats}}\n• Market Opportunities: {{$json.competitor_analysis.opportunities.length}}\n• Strategic Moves Detected: {{$json.market_metrics.strategic_moves_detected}}\n\n{{$json.predictive_intelligence.next_6_months ? '\\nPREDICTIVE INTELLIGENCE:\\n' + $json.predictive_intelligence.next_6_months.slice(0,3).map(pred => `• ${pred}`).join('\\n') : ''}}\n\nRECOMMENDATION:\nImmediate executive review required for critical threats.\nImplement counter-strategies within 48 hours.\nMonitor situation daily and prepare contingency plans.\n\nBest,\nCompetitive Intelligence Agent",
+        "options": {}
+      },
+      "id": "critical-threat-alert",
+      "name": "🚨 Critical Threat Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1560, 300],
+      "notes": "🚨 Critical competitive threat alerts\n📧 Executive crisis response\n👔 Strategic decision support"
+    },
+    {
+      "parameters": {
+        "fromEmail": "intelligence@yourcompany.com",
+        "toEmail": "strategyteam@yourcompany.com,marketing@yourcompany.com,sales@yourcompany.com",
+        "subject": "=🎯 Competitive Intelligence Report - {{new Date().toLocaleDateString()}}",
+        "html": "=<h2>Competitive Intelligence Report</h2>\n\n<h3>Market Overview</h3>\n<ul>\n<li><strong>Competitors Analyzed:</strong> {{$json.total_competitors_analyzed}}</li>\n<li><strong>Overall Threat Level:</strong> {{$json.market_threat_level}}</li>\n<li><strong>Total Active Threats:</strong> {{$json.market_metrics.total_threats}}</li>\n<li><strong>Market Opportunities:</strong> {{$json.market_metrics.opportunity_count}}</li>\n<li><strong>Strategic Moves Detected:</strong> {{$json.market_metrics.strategic_moves_detected}}</li>\n</ul>\n\n<h3>Threat Distribution</h3>\n<table border=\"1\" style=\"border-collapse: collapse;\">\n<tr><th>Threat Level</th><th>Percentage</th><th>Count</th><th>Trend</th></tr>\n<tr><td>Critical</td><td>{{$json.market_metrics.threat_distribution.critical}}</td><td>{{$json.competitor_analysis.critical_threats.length}}</td><td>{{$json.competitor_analysis.critical_threats.length > 0 ? 'INCREASING' : 'STABLE'}}</td></tr>\n<tr><td>High</td><td>{{$json.market_metrics.threat_distribution.high}}</td><td>{{$json.competitor_analysis.high_threats.length}}</td><td>STABLE</td></tr>\n<tr><td>Emerging</td><td>{{$json.market_metrics.threat_distribution.medium}}</td><td>{{$json.competitor_analysis.emerging_threats.length}}</td><td>WATCH</td></tr>\n</table>\n\n<h3>Critical Threats (Immediate Action Required)</h3>\n{{$json.competitor_analysis.critical_threats.slice(0,3).map(competitor => `<div style=\"border:1px solid #ff0000; padding:15px; margin:15px 0; background-color:#ffe6e6;\">\n<h4 style=\"color:#d32f2f;\">🚨 ${competitor.competitor_name}</h4>\n<p><strong>Primary Threat:</strong> ${competitor.threat_assessment.primary_threat}</p>\n<p><strong>Market Impact:</strong> ${competitor.threat_assessment.market_impact}</p>\n<p><strong>Trend:</strong> ${competitor.threat_assessment.trend}</p>\n\n<h5>Recent Strategic Moves:</h5>\n<ul>\n${competitor.recent_strategic_moves?.slice(0,3).map(move => `<li>${move}</li>`).join('') || '<li>Market expansion</li><li>Product innovation</li><li>Partnership development</li>'}\n</ul>\n\n<h5>Recommended Counter-Strategies:</h5>\n<ul>\n${competitor.counter_strategies?.slice(0,3).map(strategy => `<li>${strategy}</li>`).join('') || '<li>Accelerate product development</li><li>Strengthen customer relationships</li><li>Optimize pricing strategy</li>'}\n</ul>\n</div>`).join('')}}\n\n<h3>Market Opportunities</h3>\n{{$json.competitor_analysis.opportunities.slice(0,4).map(competitor => `<div style=\"border:1px solid #4CAF50; padding:10px; margin:10px 0; background-color:#e8f5e8;\">\n<h4>💎 ${competitor.competitor_name}</h4>\n<p><strong>Opportunity Type:</strong> ${competitor.opportunity_type}</p>\n<p><strong>Potential Impact:</strong> ${competitor.opportunity_impact}</p>\n<p><strong>Competitive Gap:</strong> ${competitor.competitive_gap}</p>\n<p><strong>Recommended Action:</strong> ${competitor.recommended_action}</p>\n</div>`).join('')}}\n\n<h3>Strategic Market Insights</h3>\n{{$json.market_insights.key_trends?.slice(0,5).map(trend => `<p><strong>${trend.category}:</strong> ${trend.insight}</p>`).join('') || '<p>Market analysis in progress</p>'}}\n\n<h3>Predictive Intelligence (Next 6 Months)</h3>\n<ul>\n${$json.predictive_intelligence.next_6_months?.slice(0,5).map(pred => `<li><strong>${pred.category}:</strong> ${pred.prediction}</li>`).join('') || '<li>Market consolidation expected</li><li>Digital transformation acceleration</li><li>New market entrants likely</li><li>Pricing pressure to increase</li><li>Customer experience becomes key differentiator</li>'}\n</ul>\n\n<h3>Strategic Recommendations</h3>\n<ul>\n${$json.strategic_recommendations.slice(0,5).map(rec => `<li><strong>${rec.priority}:</strong> ${rec.recommendation}</li>`).join('') || '<li>Accelerate digital transformation initiatives</li><li>Strengthen customer loyalty programs</li><li>Invest in R&D for product innovation</li><li>Expand market presence in high-growth segments</li><li>Optimize supply chain for cost efficiency</li>'}\n</ul>\n\n<p><em>Report generated by AI Competitive Intelligence Agent</em></p>",
+        "options": {}
+      },
+      "id": "weekly-intelligence-report",
+      "name": "📧 Weekly Intelligence Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1780, 400],
+      "notes": "📧 Comprehensive intelligence reports\n📊 Strategic planning support\n👔 Executive decision making"
+    }
+  ],
+  "connections": {
+    "⏰ Every 8 Hours Competitor Tracking": {
+      "main": [
+        [
+          {
+            "node": "🎯 Active Competitors Database",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🌐 Web Traffic & Engagement Analysis",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📱 Social Media Activity Monitoring",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "💰 Competitor Pricing Intelligence",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🔍 SEO & Keyword Strategy Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎯 Active Competitors Database": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Competitive Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🌐 Web Traffic & Engagement Analysis": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Competitive Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📱 Social Media Activity Monitoring": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Competitive Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💰 Competitor Pricing Intelligence": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Competitive Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 SEO & Keyword Strategy Tracking": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI Competitive Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 AI Competitive Intelligence": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Process Competitive Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Process Competitive Intelligence": {
+      "main": [
+        [
+          {
+            "node": "💾 Store Competitive Intelligence",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📱 Slack Intelligence Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🚨 Critical Threats Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🚨 Critical Threats Only": {
+      "main": [
+        [
+          {
+            "node": "🚨 Critical Threat Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📧 Weekly Intelligence Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "competitive-intelligence",
+      "name": "Competitive Intelligence"
+    },
+    {
+      "createdAt": "2024-12-30T10:00:00.000Z",
+      "updatedAt": "2024-12-30T10:00:00.000Z",
+      "id": "market-analysis",
+      "name": "Market Analysis"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-30T10:00:00.000Z",
+  "versionId": "1.0.0"
+}

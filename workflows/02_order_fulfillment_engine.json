@@ -17,16 +17,16 @@
     },
     {
       "parameters": {
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "gemini-2.0-flash-exp",
         "prompt": "=You are an expert fulfillment optimization AI. Analyze this Shopify order and determine the optimal fulfillment strategy.\n\nOrder Data: {{JSON.stringify($json, null, 2)}}\n\nConsider these factors:\n1. **Product Locations**: Check inventory at each warehouse\n2. **Shipping Speed**: Customer's location and shipping method\n3. **Costs**: Compare fulfillment costs across locations\n4. **Capacity**: Current workload at each facility\n5. **Special Requirements**: Fragile items, size constraints, customs\n\nAvailable Fulfillment Centers:\n- **West Coast DC** (Los Angeles): Fast shipping to CA, NV, AZ\n- **East Coast DC** (Atlanta): Fast shipping to FL, GA, SC, NC\n- **Central DC** (Chicago): Balanced shipping nationwide\n- **3PL Partner** (ShipBob): Overflow capacity, higher cost\n- **Amazon FBA**: For eligible products\n\nReturn a JSON decision with:\n- recommended_facility\n- reasoning\n- estimated_cost\n- shipping_timeline\n- risk_factors\n- backup_options",
         "options": {
           "temperature": 0.2,
           "maxTokens": 1500
         }
       },
-      "id": "fulfillment-ai",
-      "name": "🧠 AI Fulfillment Router",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "id": "gemini-fulfillment-router",
+      "name": "🧠 Gemini Fulfillment Router",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
       "typeVersion": 1.3,
       "position": [460, 300],
       "notes": "🎯 AI analyzes optimal fulfillment path\n📦 Considers inventory, cost, speed\n🎲 Intelligent routing decisions"
